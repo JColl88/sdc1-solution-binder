@@ -63,7 +63,7 @@ class SourceFinder:
             beam = self.get_beam_from_hdu()
 
         # Run PyBDSF
-        img = bdsf.process_image(
+        _img = bdsf.process_image(
             self.image_name,
             adaptive_rms_box=True,
             advanced_opts=True,
@@ -85,7 +85,8 @@ class SourceFinder:
         # Revert current working directory
         os.chdir(cwd)
         self._run_complete = True
-        return img
+
+        return self.get_source_df()
 
     def get_beam_from_hdu(self):
         try:

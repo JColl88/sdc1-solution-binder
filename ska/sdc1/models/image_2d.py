@@ -51,7 +51,11 @@ class Image2d:
         4) Only output necessary data dimensions
         """
         # self._apply_pb_corr()
+        
+        # TODO: Will splitting image ever be useful?
+        # If not, remove this step, otherwise leave as option
         self._split_image(split_n, overwrite)
+        
         self._create_train(overwrite)
 
     def _split_image(self, split_n, overwrite):
