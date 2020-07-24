@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
@@ -16,6 +17,28 @@ TRAIN_LIM = {
     1400: {"ra_min": -0.2688, "ra_max": 0.0, "dec_min": -29.9400, "dec_max": -29.7265},
     560: {"ra_min": -0.6723, "ra_max": 0.0, "dec_min": -29.9400, "dec_max": -29.4061},
 }
+
+
+def update_header_from_cutout2D(hdu, cutout):
+    # update data
+    newdata = np.zeros(
+        (1, 1, cutout.data.shape[0], cutout.data.shape[1]), dtype=np.float32
+    )
+    newdata[0, 0, :, :] = cutout.data
+    hdu.data = newdata
+
+    print(cutout.wcs.pixel_shape)
+
+    # update header cards returned from cutout2D wcs:
+    hdu.header.set("CRVAL1", cutout.wcs.wcs.crval[0])
+    hdu.header.set("CRVAL2", cutout.wcs.wcs.crval[1])
+    hdu.header.set("CRPIX1", cutout.wcs.wcs.crpix[0])
+    hdu.header.set("CRPIX2", cutout.wcs.wcs.crpix[1])
+    hdu.header.set("CDELT1", cutout.wcs.wcs.cdelt[0])
+    hdu.header.set("CDELT2", cutout.wcs.wcs.cdelt[1])
+    hdu.header.set("NAXIS1", cutout.wcs.pixel_shape[0])
+    hdu.header.set("NAXIS2", cutout.wcs.pixel_shape[1])
+    return hdu
 
 
 def save_subimage(image_path, out_path, position, size, overwrite=True):

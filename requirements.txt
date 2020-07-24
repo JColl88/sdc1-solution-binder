@@ -1,5 +1,9 @@
 # PyBDSF also required, following installation of environment dependencies
 
+# Dev requirements
+black
+flake8
+
 # Solution requirements
 setuptools
 Cython

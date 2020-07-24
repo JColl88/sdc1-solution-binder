@@ -5,8 +5,14 @@ import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
+from astropy.nddata.utils import Cutout2D
+from astropy.wcs import WCS
 
-from ska.sdc1.utils.image_utils import crop_to_training_area, save_subimage
+from ska.sdc1.utils.image_utils import (
+    crop_to_training_area,
+    save_subimage,
+    update_header_from_cutout2D,
+)
 
 # from astropy.nddata.utils import Cutout2D
 # from astropy.wcs import WCS
@@ -19,7 +25,6 @@ class Image2d:
         self._pb_path = pb_path
         self._prep = prep
 
-        self._segments = []
         self._train = None
 
     @property
@@ -35,62 +40,18 @@ class Image2d:
         return self._pb_path
 
     @property
-    def segments(self):
-        return self._segments
-
-    @property
     def train(self):
         return self._train
 
-    def preprocess(self, split_n=1, overwrite=True):
+    def preprocess(self, overwrite=True):
         """
         Perform preprocessing steps:
         1) Apply PB correction
-        2) Split into split_n * split_n sub-images
-        3) Output separate training image
-        4) Only output necessary data dimensions
+        2) Output separate training image
+        3) Only output necessary data dimensions
         """
-        # self._apply_pb_corr()
-        
-        # TODO: Will splitting image ever be useful?
-        # If not, remove this step, otherwise leave as option
-        self._split_image(split_n, overwrite)
-        
+        self._apply_pb_corr()
         self._create_train(overwrite)
-
-    def _split_image(self, split_n, overwrite):
-        self._segments = []
-
-        with fits.open(self.path) as hdu:
-            im_width = hdu[0].header["NAXIS1"]
-            im_height = hdu[0].header["NAXIS2"]
-
-        # Get positions of grid centrepoints
-        pos_x = (
-            np.array(range(1, (split_n * 2), 2)) * (im_width / (split_n * 2))
-        ).astype(int)
-        pos_y = (
-            np.array(range(1, (split_n * 2), 2)) * (im_height / (split_n * 2))
-        ).astype(int)
-
-        # Mesh into 2d array of coordinates
-        pos_coords_pix_arr = np.array(np.meshgrid(pos_x, pos_y)).T.reshape(-1, 2)
-
-        # Calculate image size array, with 5% buffer so images overlap.
-        size_pix = int(round((im_width / split_n) * 1.05, 0))
-        size_pix_arr = np.ones_like(pos_coords_pix_arr) * size_pix
-
-        # Write subimages to disk, update self.segments
-        for i, coord in enumerate(pos_coords_pix_arr):
-            seg_out_path = self.path[:-5] + "_seg_{}.fits".format(i)
-            save_subimage(
-                self.path,
-                seg_out_path,
-                tuple(pos_coords_pix_arr[i]),
-                tuple(size_pix_arr[i]),
-                overwrite=overwrite,
-            )
-            self._segments.append(seg_out_path)
 
     def _create_train(self, pad_factor=1.0):
         self._train = None
@@ -100,7 +61,7 @@ class Image2d:
 
     def _apply_pb_corr(self):
         """
-        Currently fails at montage.reproject step due to input image format
+        Currently fails at update_header_from_cutout2D step due to input image format
         """
         with fits.open(self.path) as image_hdu:
             # cutout pb field of view to match image field of view
@@ -114,45 +75,103 @@ class Image2d:
         )
         with fits.open(self.pb_path) as pb_hdu:
             # RA and DEC of beam PB pointing
+            pb_hdu_0 = pb_hdu[0]
             pb_pos = SkyCoord(
-                pb_hdu[0].header["CRVAL1"] * u.degree,
-                pb_hdu[0].header["CRVAL2"] * u.degree,
+                pb_hdu_0.header["CRVAL1"] * u.degree,
+                pb_hdu_0.header["CRVAL2"] * u.degree,
             )
-        pb_cor_path = self.pb_path[:-5] + "_pb_corr.fits"
-        pb_cor_rg_path = self.pb_path[:-5] + "_pb_corr_regrid.fits"
-        save_subimage(self.pb_path, pb_cor_path, pb_pos, size)
+            wcs = WCS(pb_hdu_0.header)
+            pb_cutout_path = self.pb_path[:-5] + "_cutout.fits"
+            pb_cor_path = self.pb_path[:-5] + "_pb_corr.fits"
+            pb_cor_rg_path = self.pb_path[:-5] + "_pb_corr_regrid.fits"
+            # save_subimage(self.pb_path, pb_cor_path, pb_pos, size)
+
+            cutout = Cutout2D(
+                pb_hdu_0.data[0, 0, :, :],
+                position=pb_pos,
+                size=size,
+                mode="trim",
+                wcs=wcs.celestial,
+                copy=True,
+            )
+
+            pb_hdu_0 = update_header_from_cutout2D(pb_hdu_0, cutout)
+            # write updated fits file to disk
+            pb_hdu_0.writeto(
+                pb_cutout_path, overwrite=True
+            )  # Write the cutout to a new FITS file
 
         # TODO: Regrid PB image cutout to match pixel scale of the image FOV
-        # print(" Regridding image...")
-        # # get header of image to match PB to
-        # montage.mGetHdr(self.path, "hdu_tmp.hdr")
-        # # regrid pb image (270 pixels) to size of ref image (32k pixels)
-        # montage.reproject(
-        #     in_images=pb_cor_path,
-        #     out_images=pb_cor_rg_path,
-        #     header="hdu_tmp.hdr",
-        #     exact_size=True,
-        # )
-        # os.remove("hdu_tmp.hdr")  # get rid of header text file saved to disk
+        print(" Regridding image...")
+        # get header of image to match PB to
+        montage.mGetHdr(self.path, "hdu_tmp.hdr")
+        # regrid pb image (270 pixels) to size of ref image (32k pixels)
+        montage.reproject(
+            in_images=pb_cor_path,
+            out_images=pb_cor_rg_path,
+            header="hdu_tmp.hdr",
+            exact_size=True,
+        )
+        os.remove("hdu_tmp.hdr")  # get rid of header text file saved to disk
 
-        # # do pb correction
-        # with fits.open(pb_cor_rg_path) as pb_hdu:
-        #     # fix nans introduced in primary beam by montage at edges
-        #     print(pb_hdu[0].data)
-        #     mask = np.isnan(pb_hdu[0].data)
-        #     pb_hdu[0].data[mask] = np.interp(
-        #         np.flatnonzero(mask), np.flatnonzero(~mask), pb_hdu[0].data[~mask]
-        #     )
-        #     pb_data = pb_hdu[0].data
-        # with fits.open(self.path) as hdu:
-        #     hdu[0].data = hdu[0].data / pb_data
-        # hdu[0].writeto(pb_cor_path, overwrite=True)
+        # do pb correction
+        with fits.open(pb_cor_rg_path) as pb_hdu:
+            # fix nans introduced in primary beam by montage at edges
+            print(pb_hdu[0].data)
+            mask = np.isnan(pb_hdu[0].data)
+            pb_hdu[0].data[mask] = np.interp(
+                np.flatnonzero(mask), np.flatnonzero(~mask), pb_hdu[0].data[~mask]
+            )
+            pb_data = pb_hdu[0].data
+        with fits.open(self.path) as hdu:
+            hdu[0].data = hdu[0].data / pb_data
+            hdu[0].writeto(pb_cor_path, overwrite=True)
+
+    def do_primarybeam_correction(self, pbname, imagename):
+
+        # regrid PB image cutout to match pixel scale of the image FOV
+        print(" Regridding image...")
+        # get header of image to match PB to
+        montage.mGetHdr(imagename, "hdu_tmp.hdr")
+        # regrid pb image (270 pixels) to size of ref image (32k pixels)
+        montage.reproject(
+            in_images=pbname[:-5] + "_cutout.fits",
+            out_images=pbname[:-5] + "_cutout_regrid.fits",
+            header="hdu_tmp.hdr",
+            exact_size=True,
+        )
+        os.remove("hdu_tmp.hdr")  # get rid of header text file saved to disk
+
+        # update montage output to float32
+        pb = fits.open(pbname[:-5] + "_cutout_regrid.fits", mode="update")
+        newdata = np.zeros(
+            (1, 1, pb[0].data.shape[0], pb[0].data.shape[1]), dtype=np.float32
+        )
+        newdata[0, 0, :, :] = pb[0].data
+        pb[0].data = newdata  # naxis will automatically update to 4 in the header
+
+        # fix nans introduced in primary beam by montage at edges and write to new file
+        print(
+            " A small buffer of NaNs is introduced around the image by Montage when regridding to match the size, \n these have been set to the value of their nearest neighbours to maintain the same image dimensions"
+        )
+        mask = np.isnan(pb[0].data)
+        pb[0].data[mask] = np.interp(
+            np.flatnonzero(mask), np.flatnonzero(~mask), pb[0].data[~mask]
+        )
+        pb.flush()
+        pb.close()
+
+        # apply primary beam correction
+        pb = fits.open(pbname[:-5] + "_cutout_regrid.fits")[0]
+        hdu.data = hdu.data / pb.data
+        hdu.writeto(imagename[:-5] + "_PBCOR.fits", overwrite=True)
+        print(
+            " Primary beam correction applied to {0}".format(
+                imagename[:-5] + "_PBCOR.fits"
+            )
+        )
 
     def _delete_train(self):
         if self.train is None:
             return
         os.remove(self._train)
-
-    def _delete_segments(self):
-        for fp in self.segments:
-            os.remove(fp)

@@ -7,7 +7,7 @@ from astropy.nddata import Cutout2D
 from astropy.wcs import WCS
 from astropy.wcs.utils import skycoord_to_pixel
 
-from ska.sdc1.utils.image_utils import save_subimage
+from ska.sdc1.utils.image_utils import save_subimage, update_header_from_cutout2D
 
 # Training area limits (RA, Dec)
 TRAIN_LIM = {
@@ -64,12 +64,16 @@ def crop_to_training_area(image_path, out_path, freq, pad_factor=1.0):
         * pad_factor
     )
 
-    save_subimage(
-        image_path,
-        out_path,
-        skycoord_to_pixel(train_centre, wcs),
-        (pixel_height, pixel_width),
+    cutout = Cutout2D(
+        hdu.data[0, 0, :, :],
+        position=skycoord_to_pixel(train_centre, wcs),
+        size=(pixel_height, pixel_width),
+        mode="trim",
+        wcs=wcs.celestial,
+        copy=True,
     )
+    hdu = update_header_from_cutout2D(hdu, cutout)
+    hdu.writeto(out_path, overwrite=True)
 
 
 if __name__ == "__main__":
