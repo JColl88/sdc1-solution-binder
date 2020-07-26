@@ -43,6 +43,14 @@ class Image2d:
     def train(self):
         return self._train
 
+    @property
+    def pb_cut_path(self):
+        return self._pb_path[:-5] + "_cut.fits"
+
+    @property
+    def pb_cut_rg_path(self):
+        return self._pb_path[:-5] + "_cut_rg.fits"
+
     def preprocess(self, overwrite=True):
         """
         Perform preprocessing steps:
@@ -99,27 +107,13 @@ class Image2d:
                 pb_hdu[0].header["CRVAL1"] * u.degree,
                 pb_hdu[0].header["CRVAL2"] * u.degree,
             )
-            wcs = WCS(pb_hdu[0].header)
-            pb_cutout_path = self.pb_path[:-5] + "_cutout.fits"
-            pb_cutout_regrid_path = self.pb_path[:-5] + "_cutout_regrid.fits"
 
             size = (
                 x_size * x_pixel_deg * u.degree * pad_cutout,
                 x_size * x_pixel_deg * u.degree * pad_cutout,
             )
 
-            cutout = Cutout2D(
-                pb_hdu[0].data[0, 0, :, :],
-                position=pb_pos,
-                size=size,
-                mode="trim",
-                wcs=wcs.celestial,
-                copy=True,
-            )
-
-            pb_hdu[0] = update_header_from_cutout2D(pb_hdu[0], cutout)
-            # write updated fits file to disk
-            pb_hdu[0].writeto(pb_cutout_path, overwrite=True)
+            save_subimage(self.pb_path, self.pb_cut_path, pb_pos, size, overwrite=True)
 
         # TODO: Regrid PB image cutout to match pixel scale of the image FOV
         print(" Regridding image...")
@@ -127,23 +121,22 @@ class Image2d:
         montage.mGetHdr(self.path, "hdu_tmp.hdr")
         # regrid pb image (270 pixels) to size of ref image (32k pixels)
         montage.reproject(
-            in_images=pb_cutout_path,
-            out_images=pb_cutout_regrid_path,
+            in_images=self.pb_cut_path,
+            out_images=self.pb_cut_rg_path,
             header="hdu_tmp.hdr",
             exact_size=True,
         )
         os.remove("hdu_tmp.hdr")  # get rid of header text file saved to disk
 
         # do pb correction
-        with fits.open(pb_cutout_regrid_path, mode="update") as pb_hdu:
+        with fits.open(self.pb_cut_rg_path, mode="update") as pb_hdu:
             newdata = np.zeros(
                 (1, 1, pb_hdu[0].data.shape[0], pb_hdu[0].data.shape[1]),
                 dtype=np.float32,
             )
             newdata[0, 0, :, :] = pb_hdu[0].data
-            pb_hdu[
-                0
-            ].data = newdata  # naxis will automatically update to 4 in the header
+            # naxis will automatically update to 4 in the header
+            pb_hdu[0].data = newdata
 
             # fix nans introduced in primary beam by montage at edges
             mask = np.isnan(pb_hdu[0].data)
