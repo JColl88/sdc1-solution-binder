@@ -4,7 +4,7 @@ from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.nddata import Cutout2D
 from astropy.wcs import WCS
-from astropy.wcs.utils import skycoord_to_pixel
+from astropy.wcs.utils import pixel_to_skycoord, skycoord_to_pixel
 
 # Training area limits (RA, Dec)
 TRAIN_LIM = {
@@ -20,14 +20,14 @@ TRAIN_LIM = {
 
 
 def update_header_from_cutout2D(hdu, cutout):
-    # update data
+    """
+    Update header for passed HDU from the Cutout2D object
+    """
     newdata = np.zeros(
         (1, 1, cutout.data.shape[0], cutout.data.shape[1]), dtype=np.float32
     )
     newdata[0, 0, :, :] = cutout.data
     hdu.data = newdata
-
-    print(cutout.wcs.pixel_shape)
 
     # update header cards returned from cutout2D wcs:
     hdu.header.set("CRVAL1", cutout.wcs.wcs.crval[0])
@@ -36,12 +36,9 @@ def update_header_from_cutout2D(hdu, cutout):
     hdu.header.set("CRPIX2", cutout.wcs.wcs.crpix[1])
     hdu.header.set("CDELT1", cutout.wcs.wcs.cdelt[0])
     hdu.header.set("CDELT2", cutout.wcs.wcs.cdelt[1])
-    if cutout.wcs.pixel_shape is None:
-        hdu.header.set("NAXIS1", 1)
-        hdu.header.set("NAXIS2", 1)
-    else:
-        hdu.header.set("NAXIS1", cutout.wcs.pixel_shape[0])
-        hdu.header.set("NAXIS2", cutout.wcs.pixel_shape[1])
+
+    hdu.header.set("NAXIS1", cutout.wcs.pixel_shape[0])
+    hdu.header.set("NAXIS2", cutout.wcs.pixel_shape[1])
     return hdu
 
 
@@ -59,36 +56,18 @@ def save_subimage(image_path, out_path, position, size, overwrite=True):
     """
 
     # Load the image and the WCS
-    with fits.open(image_path) as hdu:
-        wcs = WCS(hdu[0].header)
-
-        # Make the cutout, including the WCS.
-        # Keep only 2D, drop additional axis with celestial.
-        # SKA image has 4D so hdu.data[0,0,:,:].
-        if len(hdu[0].data.shape) == 4:
-            data_to_write = hdu[0].data[0, 0, :, :]
-        else:
-            data_to_write = hdu[0].data
+    with fits.open(image_path) as image_hdu:
+        wcs = WCS(image_hdu[0].header)
         cutout = Cutout2D(
-            data_to_write,
+            image_hdu[0].data[0, 0, :, :],
             position=position,
             size=size,
             wcs=wcs.celestial,
             mode="trim",
-            # TODO: previously cutout mode was 'partial' for chopping image
-            # and 'trim' for pb sub image. Check that OK for both to be 'trim'.
-            # fill_value=np.nan,
-            # copy=True TODO: check this
         )
 
-        # Put the cutout image in the FITS HDU
-        hdu[0].data = cutout.data
-
-        # Update the FITS header with the cutout WCS
-        hdu[0].header.update(cutout.wcs.to_header())
-
-        # Write the cutout to a new FITS file.
-        hdu[0].writeto(out_path, overwrite=overwrite)
+        image_hdu[0] = update_header_from_cutout2D(image_hdu[0], cutout)
+        image_hdu[0].writeto(out_path, overwrite=overwrite)
     return cutout
 
 
@@ -104,42 +83,66 @@ def crop_to_training_area(image_path, out_path, freq, pad_factor=1.0):
         freq (`int`): [560, 1400, 9200] SDC1 image frequency (different training areas)
         pad_factor (`float`, optional): Area scaling factor to include edges
     """
-    hdu = fits.open(image_path)[0]
-    wcs = WCS(hdu.header)
+    with fits.open(image_path) as image_hdu:
+        wcs = WCS(image_hdu[0].header)
 
-    # Lookup training limits for given frequency
-    ra_max = TRAIN_LIM[freq]["ra_max"]
-    ra_min = TRAIN_LIM[freq]["ra_min"]
-    dec_max = TRAIN_LIM[freq]["dec_max"]
-    dec_min = TRAIN_LIM[freq]["dec_min"]
+        # Lookup training limits for given frequency
+        ra_max = TRAIN_LIM[freq]["ra_max"]
+        ra_min = TRAIN_LIM[freq]["ra_min"]
+        dec_max = TRAIN_LIM[freq]["dec_max"]
+        dec_min = TRAIN_LIM[freq]["dec_min"]
 
-    # Centre of training area pixel coordinate:
-    train_centre = SkyCoord(
-        ra=(ra_max + ra_min) / 2, dec=(dec_max + dec_min) / 2, frame="fk5", unit="deg",
-    )
+        # Centre of training area pixel coordinate:
+        tr_centre = SkyCoord(
+            ra=(ra_max + ra_min) / 2,
+            dec=(dec_max + dec_min) / 2,
+            frame="fk5",
+            unit="deg",
+        )
 
-    # Opposing corners of training area:
-    train_min = SkyCoord(ra=ra_min, dec=dec_min, frame="fk5", unit="deg",)
-    train_max = SkyCoord(ra=ra_max, dec=dec_max, frame="fk5", unit="deg",)
+        # Opposing corners of training area:
+        tr_min = SkyCoord(ra=ra_min, dec=dec_min, frame="fk5", unit="deg",)
+        tr_max = SkyCoord(ra=ra_max, dec=dec_max, frame="fk5", unit="deg",)
 
-    # Training area approx width
-    pixel_width = (
-        abs(skycoord_to_pixel(train_max, wcs)[0] - skycoord_to_pixel(train_min, wcs)[0])
-        * pad_factor
-    )
+        # Training area approx width
+        pixel_width = (
+            abs(skycoord_to_pixel(tr_max, wcs)[0] - skycoord_to_pixel(tr_min, wcs)[0])
+            * pad_factor
+        )
 
-    # Training area approx height
-    pixel_height = (
-        abs(skycoord_to_pixel(train_max, wcs)[1] - skycoord_to_pixel(train_min, wcs)[1])
-        * pad_factor
-    )
+        # Training area approx height
+        pixel_height = (
+            abs(skycoord_to_pixel(tr_max, wcs)[1] - skycoord_to_pixel(tr_min, wcs)[1])
+            * pad_factor
+        )
 
     save_subimage(
         image_path,
         out_path,
-        skycoord_to_pixel(train_centre, wcs),
+        skycoord_to_pixel(tr_centre, wcs),
         (pixel_height, pixel_width),
+        overwrite=True,
     )
+
+
+def get_image_centre_coord(image_path):
+    """
+    Given a fits image at image_path, return the SkyCoord corresponding to the
+    image centre.
+    """
+    with fits.open(image_path) as image_hdu:
+        x_size = image_hdu[0].header["NAXIS1"]
+        y_size = image_hdu[0].header["NAXIS2"]
+
+        return pixel_to_skycoord(x_size / 2, y_size / 2, WCS(image_hdu[0].header))
+
+
+def get_pixel_value_at_skycoord(image_path, sky_coord):
+    with fits.open(image_path) as image_hdu:
+        x_pixel, y_pixel = skycoord_to_pixel(sky_coord, WCS(image_hdu[0].header))
+        x_pixel = round(float(x_pixel))
+        y_pixel = round(float(y_pixel))
+        return image_hdu[0].data[0, 0, x_pixel, y_pixel]
 
 
 def cat_df_from_srl_df(srl_df):

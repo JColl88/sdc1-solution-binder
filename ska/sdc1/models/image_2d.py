@@ -11,6 +11,8 @@ from astropy.wcs.utils import pixel_to_skycoord, skycoord_to_pixel
 
 from ska.sdc1.utils.image_utils import (
     crop_to_training_area,
+    get_image_centre_coord,
+    get_pixel_value_at_skycoord,
     save_subimage,
     update_header_from_cutout2D,
 )
@@ -59,48 +61,37 @@ class Image2d:
 
     def _apply_pb_corr(self):
         """
-        Currently fails at update_header_from_cutout2D step due to input image format
+        How to perform PB correction depends on the ratio of image size to
+        PB image pixel size; if image size is comparable or smaller than
+        a single PB pixel, the reprojection with Montage will fail, but the
+        correction can be approximated by taking the PB value at the input
+        image centre.
+        If the image is only a little larger than this, there can be a lack
+        of overlap with the PB image when reprojecting, so increase the size
         """
+
+        # Establish input image to PB image pixel size ratios:
         with fits.open(self.pb_path) as pb_hdu:
             pb_x_pixel_deg = pb_hdu[0].header["CDELT2"]
         with fits.open(self.path) as image_hdu:
-            # cutout pb field of view to match image field of view
             x_size = image_hdu[0].header["NAXIS1"]
-            y_size = image_hdu[0].header["NAXIS2"]
             x_pixel_deg = image_hdu[0].header["CDELT2"]
-        size = (
-            x_size * x_pixel_deg * u.degree,
-            x_size * x_pixel_deg * u.degree,
-        )
-        print("PB pixel is {} deg".format(pb_x_pixel_deg))
-        print("Img total size is {} deg".format(x_size * x_pixel_deg))
-        if ((x_size * x_pixel_deg) / 2.0) < pb_x_pixel_deg:
-            print("Not large enough to regrid, (2 PB pixels)")
-            pb_hdu = fits.open(self.pb_path)
-            image_hdu = fits.open(self.path)
-            # Take average pixel number:
-            print(x_size / 2, y_size / 2)
-            coord_image_centre = pixel_to_skycoord(
-                x_size / 2, y_size / 2, WCS(image_hdu[0].header)
-            )
-            print(coord_image_centre)
-            pb_x_pixel, pb_y_pixel = skycoord_to_pixel(
-                coord_image_centre, WCS(pb_hdu[0].header)
-            )
-            pb_x_pixel = round(float(pb_x_pixel))
-            pb_y_pixel = round(float(pb_y_pixel))
-            pb_value = pb_hdu[0].data[0, 0, round(pb_x_pixel), round(pb_y_pixel)]
 
-            image_hdu[0].data = image_hdu[0].data / pb_value
-            image_hdu[0].writeto(self.path[:-5] + "_pb_corr.fits", overwrite=True)
+        ratio_image_pb_pix = (x_size * x_pixel_deg) / pb_x_pixel_deg
 
+        if ratio_image_pb_pix < 2.0:
+            # Image not large enough to regrid (< 2 pixels in PB image);
+            # apply simple correction
+            coord_image_centre = get_image_centre_coord(self.path)
+            pb_value = get_pixel_value_at_skycoord(self.pb_path, coord_image_centre)
+            self._write_pb_corr(pb_value)
             return
 
-        if ((x_size * x_pixel_deg) / 4.0) < pb_x_pixel_deg:
-            size = (
-                x_size * x_pixel_deg * u.degree * 5.0,
-                x_size * x_pixel_deg * u.degree * 5.0,
-            )
+        if ratio_image_pb_pix < 4.0:
+            # Montage complains of a lack of overlap if image is small
+            pad_cutout = 5.0
+        else:
+            pad_cutout = 1.0
 
         with fits.open(self.pb_path) as pb_hdu:
             # RA and DEC of beam PB pointing
@@ -111,7 +102,11 @@ class Image2d:
             wcs = WCS(pb_hdu[0].header)
             pb_cutout_path = self.pb_path[:-5] + "_cutout.fits"
             pb_cutout_regrid_path = self.pb_path[:-5] + "_cutout_regrid.fits"
-            # save_subimage(self.pb_path, pb_cor_path, pb_pos, size)
+
+            size = (
+                x_size * x_pixel_deg * u.degree * pad_cutout,
+                x_size * x_pixel_deg * u.degree * pad_cutout,
+            )
 
             cutout = Cutout2D(
                 pb_hdu[0].data[0, 0, :, :],
@@ -124,13 +119,10 @@ class Image2d:
 
             pb_hdu[0] = update_header_from_cutout2D(pb_hdu[0], cutout)
             # write updated fits file to disk
-            pb_hdu[0].writeto(
-                pb_cutout_path, overwrite=True
-            )  # Write the cutout to a new FITS file
+            pb_hdu[0].writeto(pb_cutout_path, overwrite=True)
 
         # TODO: Regrid PB image cutout to match pixel scale of the image FOV
         print(" Regridding image...")
-        print(self.path)
         # get header of image to match PB to
         montage.mGetHdr(self.path, "hdu_tmp.hdr")
         # regrid pb image (270 pixels) to size of ref image (32k pixels)
@@ -154,16 +146,26 @@ class Image2d:
             ].data = newdata  # naxis will automatically update to 4 in the header
 
             # fix nans introduced in primary beam by montage at edges
-            # print(pb_hdu[0].data)
             mask = np.isnan(pb_hdu[0].data)
             pb_hdu[0].data[mask] = np.interp(
                 np.flatnonzero(mask), np.flatnonzero(~mask), pb_hdu[0].data[~mask]
             )
-            pb_data = pb_hdu[0].data
+            pb_array = pb_hdu[0].data
             pb_hdu.flush()
-        with fits.open(self.path) as hdu:
-            hdu[0].data = hdu[0].data / pb_data
-            hdu[0].writeto(self.path[:-5] + "_pb_corr.fits", overwrite=True)
+
+        self._write_pb_corr(pb_array)
+
+    def _write_pb_corr(self, pb_data):
+        """
+        Apply the PB correction and write to disk.
+        
+        pb_data can either be an array of the same dimensions as the image at
+        self.path, or a scalar.
+        """
+        pb_corr_path = self.path[:-5] + "_pb_corr.fits"
+        with fits.open(self.path) as image_hdu:
+            image_hdu[0].data = image_hdu[0].data / pb_data
+            image_hdu[0].writeto(pb_corr_path, overwrite=True)
 
     def _delete_train(self):
         if self.train is None:
