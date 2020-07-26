@@ -36,8 +36,12 @@ def update_header_from_cutout2D(hdu, cutout):
     hdu.header.set("CRPIX2", cutout.wcs.wcs.crpix[1])
     hdu.header.set("CDELT1", cutout.wcs.wcs.cdelt[0])
     hdu.header.set("CDELT2", cutout.wcs.wcs.cdelt[1])
-    hdu.header.set("NAXIS1", cutout.wcs.pixel_shape[0])
-    hdu.header.set("NAXIS2", cutout.wcs.pixel_shape[1])
+    if cutout.wcs.pixel_shape is None:
+        hdu.header.set("NAXIS1", 1)
+        hdu.header.set("NAXIS2", 1)
+    else:
+        hdu.header.set("NAXIS1", cutout.wcs.pixel_shape[0])
+        hdu.header.set("NAXIS2", cutout.wcs.pixel_shape[1])
     return hdu
 
 
