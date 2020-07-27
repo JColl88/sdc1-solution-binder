@@ -18,15 +18,40 @@ Source `etc/aliases` for shell auto-complete:
 $ source etc/aliases
 ```
 
+Make the docker image:
+
+```bash
+$ make dev
+```
+
+### Run dev container with mounts
+
+```bash
+$ sdc1-start-dev
+```
+
+Exec a shell inside the container:
+
+```bash
+$ sdc1-exec-dev
+```
+
+Stop the container:
+```bash
+$ sdc1-stop-dev
+```
+
 ### Unit testing
+
+Make the docker image:
+
+```bash
+$ make test
+```
 
 ```bash
 $ sdc1-run-test
 ```
 
-### Run development container with mounts
 
-```bash
-$ sdc1-setup-env
-```
 
