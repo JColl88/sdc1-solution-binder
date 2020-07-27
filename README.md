@@ -30,13 +30,14 @@ $ make dev
 $ sdc1-start-dev
 ```
 
-Exec a shell inside the container:
+### Exec a shell inside the container
 
 ```bash
 $ sdc1-exec-dev
 ```
 
-Stop the container:
+### Stop the container
+
 ```bash
 $ sdc1-stop-dev
 ```
