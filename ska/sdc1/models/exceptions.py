@@ -1,0 +1,2 @@
+class ImageNotPreprocessed(Exception):
+    pass
