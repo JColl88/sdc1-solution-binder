@@ -1,0 +1,4 @@
+#!/bin/bash
+
+alias sdc1-run-test="/bin/bash $SDC1_SOLUTION_ROOT/etc/run_unittests.sh"
+alias sdc1-setup-dev="/bin/bash $SDC1_SOLUTION_ROOT/etc/run_dev.sh"

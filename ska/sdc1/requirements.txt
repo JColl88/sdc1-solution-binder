@@ -1,0 +1,16 @@
+aplpy
+astropy
+bdsf
+cython
+datashader
+matplotlib
+memory_profiler
+montage-wrapper
+numpy
+scipy
+scikit-learn
+setuptools
+umap-learn
+wcsaxes
+wheel
+

@@ -1,7 +1,6 @@
 FROM ubuntu:18.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-
 RUN apt-get update \
     && apt-get --yes install --no-install-recommends \
     bison \
@@ -40,22 +39,7 @@ RUN apt-get update \
     wget \
     screen
 
-# Install python3 packages
-RUN python3.6 -m pip install setuptools Cython
-RUN python3.6 -m pip install --upgrade \
-    wheel \
-    aplpy \
-    astropy \
-    numpy \
-    matplotlib \
-    scipy \
-    wcsaxes \
-    scikit-learn \
-    umap-learn \
-    datashader \
-    memory_profiler
-
-# Install Boost.Python 1.63 with Python 3
+# boost v1.63
 RUN cd / \
     && wget https://dl.bintray.com/boostorg/release/1.63.0/source/boost_1_63_0.tar.bz2 \
     && tar xvf boost_1_63_0.tar.bz2 \
@@ -66,7 +50,11 @@ RUN cd / \
     && ./b2 install \
     && cd / && rm -r boost_1_63_0*
 
-# Install pyBDSF
-RUN python3.6 -m pip install bdsf
+# python3 requirements
+COPY ./requirements.txt /tmp/
+RUN python3.6 -m pip install --upgrade pip
+RUN python3.6 -m pip install -r /tmp/requirements.txt
 
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}/usr/local/lib
+
+ENTRYPOINT /bin/bash
