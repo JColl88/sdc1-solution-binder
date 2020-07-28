@@ -61,6 +61,9 @@ class SourceFinder:
         return "{}_pybdsm".format(self.image_path[:-5])
 
     def get_output_cat(self, extn):
+        """
+        Get BDSF output directory
+        """
         srl_glob = glob.glob(
             "{}_pybdsm/*/catalogues/*.{}".format(self.image_path[:-5], extn)
         )
