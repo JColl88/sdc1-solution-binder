@@ -4,3 +4,7 @@ class ImageNotPreprocessed(Exception):
 
 class CatalogueException(Exception):
     pass
+
+
+class SourceFinderException(Exception):
+    pass

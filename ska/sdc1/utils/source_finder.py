@@ -5,7 +5,7 @@ import shutil
 from astropy.io import fits
 
 import bdsf
-from ska.sdc1.models.exceptions import CatalogueException
+from ska.sdc1.models.exceptions import CatalogueException, SourceFinderException
 from ska.sdc1.utils.bdsf_utils import gaul_as_df, srl_as_df
 
 
@@ -75,6 +75,9 @@ class SourceFinder:
             raise Exception("More than 1 catalogue of type {} found".format(extn))
 
     def run(self, beam=()):
+        """
+        Run the source finder algorithm.
+        """
         self._run_complete = False
 
         # Must switch the executor's working directory to the image directory to
@@ -87,7 +90,7 @@ class SourceFinder:
             beam = self.get_beam_from_hdu()
 
         # Run PyBDSF
-        _img = bdsf.process_image(
+        bdsf.process_image(
             self.image_name,
             adaptive_rms_box=True,
             advanced_opts=True,
