@@ -98,8 +98,10 @@ class Image2d:
             1) Create PB-corrected image (self.pb_corr_image)
             2) Output separate training image (self.train)
         """
+        self._prep = False
         self._create_pb_corr()
         self._create_train()
+        self._prep = True
 
     def reset(self):
         """
