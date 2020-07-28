@@ -5,38 +5,59 @@ import shutil
 from astropy.io import fits
 
 import bdsf
+from ska.sdc1.models.exceptions import CatalogueException
 from ska.sdc1.utils.bdsf_utils import gaul_as_df, srl_as_df
 
 
 class SourceFinder:
     """
-    Find sources using PyBDSF
+    Find sources using PyBDSF.
+
+
+    Args:
+        image_path (:obj:`str`): Path to the image to search for sources in
     """
 
     def __init__(self, image_path):
         self.image_path = image_path
         self._run_complete = False
-        self._source_list = None
-        self._gaussian_list = None
 
     @property
-    def image_dir(self):
+    def image_dirname(self):
+        """
+        Path of directory containing image
+        """
         return os.path.dirname(self.image_path)
 
     @property
     def image_name(self):
+        """
+        Image file name
+        """
         return os.path.basename(self.image_path)
 
     def get_srl_path(self):
+        """
+        Get BDSF source list path
+        """
         return self.get_output_cat("srl")
 
     def get_gaul_path(self):
+        """
+        Get BDSF Gaussian list path
+        """
         return self.get_output_cat("gaul")
 
     def get_bdsf_log_path(self):
+        """
+        Get BDSF log file path
+        """
         return "{}.pybdsf.log".format(self.image_path)
 
     def get_bdsf_out_path(self):
+        """
+        Get BDSF output directory
+        """
         return "{}_pybdsm".format(self.image_path[:-5])
 
     def get_output_cat(self, extn):
@@ -56,7 +77,7 @@ class SourceFinder:
         # Must switch the executor's working directory to the image directory to
         # run PyBDSF, and switch back after the run is complete.
         cwd = os.getcwd()
-        os.chdir(self.image_dir)
+        os.chdir(self.image_basepath)
 
         # Get beam info automatically if not provided
         if not beam:
