@@ -16,7 +16,7 @@ class SourceFinder:
 
 
     Args:
-        image_path (:obj:`str`): Path to the image to search for sources in
+        image_path (:obj:`str`): Path to the image in which to search for sources
     """
 
     def __init__(self, image_path):
@@ -61,7 +61,7 @@ class SourceFinder:
         """
         return "{}_pybdsm".format(self.image_path[:-5])
 
-    def get_bdsf_tmp_dir(self):
+    def _get_bdsf_tmp_dir(self):
         """
         Get BDSF temp directory
         """
@@ -125,9 +125,9 @@ class SourceFinder:
 
         # Get beam info automatically if not provided
         if not beam:
-            beam = self.get_beam_from_hdu()
+            beam = self._get_beam_from_hdu()
         if not rms_box:
-            rms_box = self.get_rms_box_from_hdu()
+            rms_box = self._get_rms_box_from_hdu()
 
         # Run PyBDSF
         try:
@@ -165,7 +165,7 @@ class SourceFinder:
 
         return self.get_source_df()
 
-    def get_beam_from_hdu(self):
+    def _get_beam_from_hdu(self):
         """
         Look up the beam information in the header of the SourceFinder's image
         """
@@ -178,7 +178,7 @@ class SourceFinder:
         except IndexError:
             raise SourceFinderException("Unable to automatically determine beam info")
 
-    def get_rms_box_from_hdu(self):
+    def _get_rms_box_from_hdu(self):
         """
         Determine an appropriate RMS box size using the header of the SourceFinder's
         image
@@ -219,5 +219,5 @@ class SourceFinder:
         """
         Clean up BDSF temporary directory
         """
-        if Path(self.get_bdsf_tmp_dir()).is_dir():
-            shutil.rmtree(self.get_bdsf_tmp_dir())
+        if Path(self._get_bdsf_tmp_dir()).is_dir():
+            shutil.rmtree(self._get_bdsf_tmp_dir())

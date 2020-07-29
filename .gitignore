@@ -2,11 +2,26 @@
 __pycache__/
 *.py[cod]
 
-data/
+# Development environment
 venv/
 Montage/
+.vscode/
+
+# Data and temporary directories
+data/
 *_pybdsm/
 bdsf_out/
-.flake8
-.vscode/
+
+# Temporary developer scripts
 dev_scripts/
+
+# Unit test/coverage reports
+tests/unittests/reports
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+coverage.xml
+
+# Sphinx documentation
+docs/_build

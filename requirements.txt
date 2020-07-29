@@ -20,5 +20,11 @@ datashader
 memory_profiler
 montage-wrapper
 
-# Test requirements
+# Logging and documentation
+sphinx
+sphinx_rtd_theme
+
+# Testing
 pytest
+pytest-html
+pytest-cov
