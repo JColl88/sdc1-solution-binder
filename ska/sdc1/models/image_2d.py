@@ -52,9 +52,9 @@ class Image2d:
         return self._path
 
     @property
-    def basepath(self):
+    def dirname(self):
         """
-        Path of directory containing image path
+        Path of directory containing image
         """
         return os.path.dirname(self._path)
 
@@ -98,8 +98,10 @@ class Image2d:
             1) Create PB-corrected image (self.pb_corr_image)
             2) Output separate training image (self.train)
         """
+        self._prep = False
         self._create_pb_corr()
         self._create_train()
+        self._prep = True
 
     def reset(self):
         """
@@ -125,7 +127,7 @@ class Image2d:
         """
         Montage header file, used for reproject (temporary)
         """
-        return os.path.join(self.basepath, "hdu_tmp.hdr")
+        return os.path.join(self.dirname, "hdu_tmp.hdr")
 
     def _create_train(self, pad_factor=1.0):
         """

@@ -13,7 +13,7 @@ class TestSourceFinder:
 
         assert not source_finder._run_complete
         assert not os.path.exists(source_finder.get_bdsf_log_path())
-        assert not os.path.isdir(source_finder.get_bdsf_out_path())
+        assert not os.path.isdir(source_finder.get_bdsf_out_dir())
 
         source_finder.run()
 
@@ -21,13 +21,13 @@ class TestSourceFinder:
         assert os.path.exists(source_finder.get_bdsf_log_path())
         assert os.path.exists(source_finder.get_srl_path())
         assert os.path.exists(source_finder.get_gaul_path())
-        assert os.path.isdir(source_finder.get_bdsf_out_path())
+        assert os.path.isdir(source_finder.get_bdsf_out_dir())
 
         source_finder.reset()
 
         assert not source_finder._run_complete
         assert not os.path.exists(source_finder.get_bdsf_log_path())
-        assert not os.path.isdir(source_finder.get_bdsf_out_path())
+        assert not os.path.isdir(source_finder.get_bdsf_out_dir())
 
     def test_retrieve_source_list(self, images_dir, test_image_name):
         image_path = os.path.join(images_dir, test_image_name)
@@ -42,4 +42,4 @@ class TestSourceFinder:
 
         assert not source_finder._run_complete
         assert not os.path.exists(source_finder.get_bdsf_log_path())
-        assert not os.path.isdir(source_finder.get_bdsf_out_path())
+        assert not os.path.isdir(source_finder.get_bdsf_out_dir())
