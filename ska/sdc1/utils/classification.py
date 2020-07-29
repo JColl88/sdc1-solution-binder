@@ -89,6 +89,24 @@ class SKLRegression():
         return regressor.predict(test_x)
 
 
+    def _xmatch_using_scorer(self, srl_path, truth_cat_path):
+        """
+        Crossmatch sources against a truth catalogue using the SDC1 scorer. 
+
+        Args:
+            srl_path (`str`): Path to source list (.srl file).
+            truth_cat_path (`str`): Path to truth catalogue.
+            freq: (`int`): Frequency band (MHz).
+        """
+        sub_cat_df = cat_df_from_srl(srl_path)
+        truth_cat_df = load_truth_df(truth_cat_path)
+
+        scorer = Sdc1Scorer(sub_cat_df, truth_cat_df, freq)
+        score = scorer.run(train=True, detail=True, mode=1)
+
+        return score.match_df
+
+
     def train(self, srl_path, truth_cat_path, gaul_path, regressand_col, freq=1400, 
     srl_cat_cols=SRL_CAT_COLS, srl_num_cols=SRL_NUM_COLS,
     srl_drop_cols=SRL_COLS_TO_DROP):
@@ -110,7 +128,7 @@ class SKLRegression():
         """
         # Get crossmatched DataFrame using the SDC1 scorer.
         #
-        xmatch_df = xmatch_using_scorer(srl_path, truth_cat_path, freq)
+        xmatch_df = _xmatch_using_scorer(srl_path, truth_cat_path, freq)
 
         # Append the number of Gaussians to the source list DataFrame.
         #
@@ -164,21 +182,3 @@ class SKLRegression():
         test_y = self._SKLpredict(test_x)
 
         return test_y
-
-
-    def xmatch_using_scorer(self, srl_path, truth_cat_path):
-        """
-        Crossmatch sources against a truth catalogue using the SDC1 scorer. 
-
-        Args:
-            srl_path (`str`): Path to source list (.srl file).
-            truth_cat_path (`str`): Path to truth catalogue.
-            freq: (`int`): Frequency band (MHz).
-        """
-        sub_cat_df = cat_df_from_srl(srl_path)
-        truth_cat_df = load_truth_df(truth_cat_path)
-
-        scorer = Sdc1Scorer(sub_cat_df, truth_cat_df, freq)
-        score = scorer.run(train=True, detail=True, mode=1)
-
-        return score.match_df
