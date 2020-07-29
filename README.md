@@ -42,7 +42,7 @@ $ sdc1-exec-dev
 $ sdc1-stop-dev
 ```
 
-### Unit testing
+## Unit testing
 
 Make the docker image:
 
@@ -50,8 +50,10 @@ Make the docker image:
 $ make test
 ```
 
+### Run unit tests
+
 ```bash
-$ sdc1-run-test
+$ sdc1-run-unittests
 ```
 
 

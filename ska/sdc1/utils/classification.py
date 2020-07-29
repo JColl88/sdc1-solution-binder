@@ -1,5 +1,3 @@
-import time
-
 from ska_sdc import Sdc1Scorer
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -91,7 +89,7 @@ class SKLRegression():
 
     def _xmatch_using_scorer(self, srl_path, truth_cat_path):
         """
-        Crossmatch sources against a truth catalogue using the SDC1 scorer. 
+        Crossmatch source list against a truth catalogue using the SDC1 scorer. 
 
         Args:
             srl_path (`str`): Path to source list (.srl file).
