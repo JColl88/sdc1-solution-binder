@@ -1,7 +1,6 @@
 FROM ubuntu:18.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-
 RUN apt-get update \
     && apt-get --yes install --no-install-recommends \
     bison \
@@ -40,22 +39,7 @@ RUN apt-get update \
     wget \
     screen
 
-# Install python3 packages
-RUN python3.6 -m pip install setuptools Cython
-RUN python3.6 -m pip install --upgrade \
-    wheel \
-    aplpy \
-    astropy \
-    numpy \
-    matplotlib \
-    scipy \
-    wcsaxes \
-    scikit-learn \
-    umap-learn \
-    datashader \
-    memory_profiler
-
-# Install Boost.Python 1.63 with Python 3
+# boost v1.63
 RUN cd / \
     && wget https://dl.bintray.com/boostorg/release/1.63.0/source/boost_1_63_0.tar.bz2 \
     && tar xvf boost_1_63_0.tar.bz2 \
@@ -66,7 +50,22 @@ RUN cd / \
     && ./b2 install \
     && cd / && rm -r boost_1_63_0*
 
-# Install pyBDSF
-RUN python3.6 -m pip install bdsf
+# montage
+RUN git clone https://github.com/Caltech-IPAC/Montage.git \
+    && cd Montage \
+    && make \
+    && cd .. 
+ENV PATH="/Montage/bin:${PATH}"
+
+# python3 requirements
+COPY ./requirements.txt /tmp/
+RUN python3.6 -m pip install --upgrade pip
+RUN python3.6 -m pip install -r /tmp/requirements.txt
+
+RUN git clone https://gitlab.com/ska-telescope/sdc/ska-sdc.git ska_sdc
+RUN sed -i 's/3.7/3.6/g' ska_sdc/setup.py
+RUN python3.6 -m pip install ./ska_sdc
 
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}/usr/local/lib
+
+ENTRYPOINT /bin/bash
