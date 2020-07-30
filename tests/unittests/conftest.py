@@ -7,8 +7,13 @@ def images_dir():
 
 
 @pytest.fixture
-def test_image_name():
-    return "test_B1_1000h.fits"
+def test_image_small():
+    return "B1_1000h_0.05tr.fits"
+
+
+@pytest.fixture
+def test_image_large():
+    return "B1_1000h_0.3tr.fits"
 
 
 @pytest.fixture
