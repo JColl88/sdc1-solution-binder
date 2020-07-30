@@ -6,6 +6,7 @@ __pycache__/
 venv/
 Montage/
 .vscode/
+*workspace
 
 # Data and temporary directories
 data/
@@ -22,6 +23,9 @@ tests/unittests/reports
 htmlcov/
 .tox/
 coverage.xml
+tests/testdata/cat/
 
 # Sphinx documentation
 docs/_build
+
+

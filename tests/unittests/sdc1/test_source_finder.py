@@ -7,8 +7,8 @@ from ska.sdc1.utils.source_finder import SourceFinder
 
 
 class TestSourceFinder:
-    def test_find_sources(self, images_dir, test_image_small):
-        image_path = os.path.join(images_dir, test_image_small)
+    def test_find_sources(self, images_dir, test_source_finder_image_name):
+        image_path = os.path.join(images_dir, test_source_finder_image_name)
         source_finder = SourceFinder(image_path)
 
         assert not source_finder._run_complete
@@ -29,8 +29,8 @@ class TestSourceFinder:
         assert not os.path.exists(source_finder.get_bdsf_log_path())
         assert not os.path.isdir(source_finder.get_bdsf_out_dir())
 
-    def test_retrieve_source_list(self, images_dir, test_image_small):
-        image_path = os.path.join(images_dir, test_image_small)
+    def test_retrieve_source_list(self, images_dir, test_source_finder_image_name):
+        image_path = os.path.join(images_dir, test_source_finder_image_name)
         source_finder = SourceFinder(image_path)
 
         source_finder.run()
