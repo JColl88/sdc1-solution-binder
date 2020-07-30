@@ -1,6 +1,6 @@
 import pandas as pd
 
-from ska.sdc1.utils.columns import GAUL_COLUMNS, SRL_COLUMNS
+from ska.sdc1.utils.columns import GAUL_COLUMNS, SRL_COLUMNS, CAT_COLUMNS
 
 def cat_df_from_srl(srl_path):
     """

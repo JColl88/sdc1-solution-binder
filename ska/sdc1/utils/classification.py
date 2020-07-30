@@ -1,10 +1,13 @@
+import os
+
 from ska_sdc import Sdc1Scorer
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import LabelEncoder
 
 from ska.sdc1.utils.bdsf_utils import cat_df_from_srl, load_truth_df, srl_gaul_df
-from ska.sdc1.utils.columns from utils import SRL_CAT_COLS, SRL_COLS_TO_DROP, SRL_NUM_COLS
+from ska.sdc1.utils.columns import SRL_CAT_COLS, SRL_COLS_TO_DROP, SRL_NUM_COLS
 
 
 class SKLRegression():
@@ -70,7 +73,7 @@ class SKLRegression():
         Returns:
             None
         """              
-        self.regressor.fit(train_x, train_y)
+        self.regressor.fit(X, y)
 
 
     def _SKLpredict(self, X):
@@ -84,10 +87,23 @@ class SKLRegression():
         Returns:
             (:obj:`numpy.ndarray`): Predicted values.
         """
-        return regressor.predict(test_x)
+        return self.regressor.predict(X)
 
 
-    def _xmatch_using_scorer(self, srl_path, truth_cat_path):
+    def _SKLScore(self, X, y, metric):
+        """
+        Score the validation using the metric, <metric>.
+
+        Args:
+            X (:obj:`numpy.array`): Input samples.
+            y (:obj:`numpy.array`): True values for X.
+        Returns:
+            (:obj:`float`): Score.
+        """
+        return np.sqrt(metric(X, y))
+
+
+    def _xmatch_using_scorer(self, srl_path, truth_cat_path, freq):
         """
         Crossmatch source list against a truth catalogue using the SDC1 scorer. 
 
@@ -99,15 +115,47 @@ class SKLRegression():
         sub_cat_df = cat_df_from_srl(srl_path)
         truth_cat_df = load_truth_df(truth_cat_path)
 
+        truth_cat_df = truth_cat_df.dropna()
+        
         scorer = Sdc1Scorer(sub_cat_df, truth_cat_df, freq)
         score = scorer.run(train=True, detail=True, mode=1)
 
-        return score.match_df
+        return score
+
+
+    def test(self, srl_path, gaul_path, srl_cat_cols=SRL_CAT_COLS, 
+    srl_num_cols=SRL_NUM_COLS, srl_drop_cols=SRL_COLS_TO_DROP, sl=np.s_[::]):
+        """
+        Predict the <regressand_column> for the test set source list using the 
+        regressor.
+
+        Args:
+            srl_path (`str`): Path to source list (.srl file).
+            gaul_path (`str`): Path to Gaussian list (.srl file).
+            srl_cat_cols: (`list`) Categorical columns in source list.
+            srl_num_cols: (`list`) Numerical columns in source list.
+            srl_drop_cols: (`list`) Columns to exclude in source list.
+            sl: (`slice`) Slice of source list to use for testing.
+        Returns:
+            (:obj:`numpy.ndarray`): Predicted values.
+        """
+        # Append the number of Gaussians to the source list DataFrame and take slice.
+        #
+        srl_df = srl_gaul_df(gaul_path, srl_path)
+
+        # Preprocess source list, take slice, and construct test dataset.
+        # 
+        srl_df = self._preprocess_srl_df(srl_df, srl_cat_cols, srl_num_cols, 
+            srl_drop_cols).iloc[sl, :]
+        test_x = srl_df[srl_cat_cols+srl_num_cols]
+        test_y = self._SKLpredict(test_x)
+
+        return test_y
 
 
     def train(self, srl_path, truth_cat_path, gaul_path, regressand_col, freq=1400, 
-    srl_cat_cols=SRL_CAT_COLS, srl_num_cols=SRL_NUM_COLS,
-    srl_drop_cols=SRL_COLS_TO_DROP):
+        srl_cat_cols=SRL_CAT_COLS, srl_num_cols=SRL_NUM_COLS,
+        srl_drop_cols=SRL_COLS_TO_DROP, sl=np.s_[::2]):
         """
         Train the regressor on <regressand_col> using a crossmatched PyBDSF 
         source list.
@@ -121,12 +169,14 @@ class SKLRegression():
             srl_cat_cols: (`list`) Categorical columns in source list.
             srl_num_cols: (`list`) Numerical columns in source list.
             srl_drop_cols: (`list`) Columns to exclude in source list.
+            sl: (`slice`) Slice of source list to use for training.
         Returns:
-            None
+            srl_df (`str`): Crossmatched source list DataFrame used for training.
         """
         # Get crossmatched DataFrame using the SDC1 scorer.
         #
-        xmatch_df = _xmatch_using_scorer(srl_path, truth_cat_path, freq)
+        xmatch = self._xmatch_using_scorer(srl_path, truth_cat_path, freq)
+        xmatch_df = self._xmatch_using_scorer(srl_path, truth_cat_path, freq).match_df
 
         # Append the number of Gaussians to the source list DataFrame.
         #
@@ -141,42 +191,45 @@ class SKLRegression():
         xmatch_df = xmatch_df.set_index("id")
         srl_df[regressand_col] = xmatch_df[regressand_col]
 
-        # Remove unmatched sources and obsolete columns, encode categorical data,
-        # perform any necessary type casting and fit the training set.
+        # Preprocess source list, take slice, and construct training dataset.
         # 
         srl_df = self._preprocess_srl_df(srl_df, srl_cat_cols, srl_num_cols, 
-            srl_drop_cols)
+            srl_drop_cols).iloc[sl, :]
         train_x = srl_df[srl_cat_cols+srl_num_cols]
         train_y = srl_df[regressand_col].values
 
         self._SKLfit(train_x, train_y)
 
+        return srl_df
 
-    def predict(self, srl_path, gaul_path, srl_cat_cols=SRL_CAT_COLS, 
-    srl_num_cols=SRL_NUM_COLS, srl_drop_cols=SRL_COLS_TO_DROP):
+
+    def validate(self, srl_df, regressand_col, srl_cat_cols=SRL_CAT_COLS, 
+    srl_num_cols=SRL_NUM_COLS, srl_drop_cols=SRL_COLS_TO_DROP, sl=np.s_[1::2], 
+    validation_metric=mean_squared_error):
         """
-        Predict the <regressand_column> for a source list using the regressor.
+        Predict the <regressand_column> for the validation set source list using the 
+        regressor.
 
         Args:
-            srl_path (`str`): Path to source list (.srl file).
-            gaul_path (`str`): Path to Gaussian list (.srl file).
+            srl_df (`str`): Path to source list (.srl file).
+            regressand_col: (`str`): Regressand column name.
             srl_cat_cols: (`list`) Categorical columns in source list.
             srl_num_cols: (`list`) Numerical columns in source list.
             srl_drop_cols: (`list`) Columns to exclude in source list.
+            sl: (`slice`) Slice of source list to use for validation.
+            validation_metric: (`function`) SKL metric.
         Returns:
-            (:obj:`numpy.ndarray`): Predicted values.
+            (:obj:`float`): The validation score.
         """
-        # Append the number of Gaussians to the source list DataFrame and take a 
-        # copy of the full DataFrame.
-        #
-        srl_df = srl_gaul_df(gaul_path, srl_path)
-
-        # Remove unmatched sources and obsolete columns, encode categorical data,
-        # perform any necessary type casting and fit the full dataset.
+        # Take slice and construct validation set.
         # 
-        srl_df = self._preprocess_srl_df(srl_df, srl_cat_cols, srl_num_cols, 
-            srl_drop_cols)
-        test_x = srl_df[srl_cat_cols+srl_num_cols]
-        test_y = self._SKLpredict(test_x)
+        srl_df = srl_df.iloc[sl, :]
+        validate_x = srl_df[srl_cat_cols+srl_num_cols]
+        validate_y_true = srl_df[regressand_col].values
 
-        return test_y
+        validate_y = self._SKLpredict(validate_x)
+
+        return self._SKLScore(validate_y, validate_y_true, metric=validation_metric)
+
+
+

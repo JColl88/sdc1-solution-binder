@@ -68,4 +68,6 @@ RUN python3.6 -m pip install ./ska_sdc
 
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}/usr/local/lib
 
+WORKDIR /opt/
+
 ENTRYPOINT /bin/bash
