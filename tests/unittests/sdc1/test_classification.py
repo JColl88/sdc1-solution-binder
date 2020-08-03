@@ -44,18 +44,18 @@ class TestClassification:
         )
 
         # Assertion for xmatch score.
-        assert regressor.last_xmatch_score == pytest.approx(20.05238, 1e-5)
+        assert regressor.last_xmatch_score == pytest.approx(28.91795, 1e-5)
 
         # Assertion for validation score.
         assert regressor.validate(
             srl_df, regressand_col="b_maj_t", validation_metric=mean_squared_error
-        ) == pytest.approx(0.065941, 1e-5)
+        ) == pytest.approx(0.079704, 1e-5)
 
         # Assertion for testing score.
         test_y = regressor.test(test_srl_path, test_gaul_path)
-        assert np.mean(test_y) == pytest.approx(1.12799, 1e-5)
-        assert np.min(test_y) == pytest.approx(0.40677, 1e-5)
-        assert np.max(test_y) == pytest.approx(4.69862, 1e-5)
+        assert np.mean(test_y) == pytest.approx(1.57434, 1e-5)
+        assert np.min(test_y) == pytest.approx(0.49190, 1e-5)
+        assert np.max(test_y) == pytest.approx(7.61947, 1e-5)
 
         # Classification.
         #
@@ -73,7 +73,7 @@ class TestClassification:
         )
 
         # Assertion for xmatch score.
-        assert classifier.last_xmatch_score == pytest.approx(20.05238, 1e-5)
+        assert classifier.last_xmatch_score == pytest.approx(28.91795, 1e-5)
 
         # Assertion for validation score.
         assert (

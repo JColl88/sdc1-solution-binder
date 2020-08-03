@@ -38,7 +38,7 @@ def test_classification_train_gaul_name():
 
 @pytest.fixture
 def test_classification_train_truth_cat_name():
-    return "truth.cat"
+    return "truth_B1_0.3tr.cat"
 
 
 @pytest.fixture
@@ -64,9 +64,3 @@ def test_image_2d_pb_image_name():
 @pytest.fixture
 def test_source_finder_image_name():
     return "B1_1000h_0.3tr.fits"
-
-
-
-
-
-

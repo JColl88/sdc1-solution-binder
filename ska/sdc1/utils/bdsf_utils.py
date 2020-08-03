@@ -1,6 +1,8 @@
 import pandas as pd
+from ska_sdc import Sdc1Scorer
 
-from ska.sdc1.utils.columns import GAUL_COLUMNS, SRL_COLUMNS, CAT_COLUMNS
+from ska.sdc1.utils.columns import CAT_COLUMNS, GAUL_COLUMNS, SRL_COLUMNS
+
 
 def cat_df_from_srl(srl_path):
     """
@@ -44,7 +46,7 @@ def cat_df_from_srl(srl_path):
     # TODO: To be predicted using classifier
     cat_df["class"] = 1
     return cat_df
-    
+
 
 def srl_as_df(srl_path):
     """
@@ -61,8 +63,8 @@ def srl_as_df(srl_path):
 
 def srl_gaul_df(gaul_path, srl_path):
     """
-    Given a gaussian list (.gaul) and source list (.srl) from PyBDSF, 
-    return a new catalogue of sources including the number of 
+    Given a gaussian list (.gaul) and source list (.srl) from PyBDSF,
+    return a new catalogue of sources including the number of
     gaussian components.
 
     Args:
@@ -121,10 +123,6 @@ def load_truth_df(truth_path):
         truth_path (`str`): Path to training truth catalogue
     """
     truth_df = pd.read_csv(
-        truth_path,
-        skiprows=18,
-        names=CAT_COLUMNS,
-        usecols=range(12),
-        delim_whitespace=True,
+        truth_path, names=CAT_COLUMNS, usecols=range(12), delim_whitespace=True,
     )
     return truth_df

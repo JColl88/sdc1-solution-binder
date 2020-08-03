@@ -11,6 +11,8 @@ Montage/
 # Data and temporary directories
 data/
 *_pybdsm/
+*_tmp/
+*.pybdsf.log
 bdsf_out/
 
 # Temporary developer scripts
@@ -23,7 +25,6 @@ tests/unittests/reports
 htmlcov/
 .tox/
 coverage.xml
-tests/testdata/cat/
 
 # Sphinx documentation
 docs/_build

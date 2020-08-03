@@ -1,9 +1,9 @@
 import argparse
 
 import pandas as pd
+from ska_sdc import Sdc1Scorer
 
 from ska.sdc1.utils.columns import CAT_COLUMNS, GAUL_COLUMNS, SRL_COLUMNS
-from ska_sdc import Sdc1Scorer
 
 
 def score_from_srl(srl_path, truth_path, freq, verbose=False):
