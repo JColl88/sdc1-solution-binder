@@ -1,10 +1,10 @@
-from abc import ABC, abstractmethod
 import os
+from abc import ABC, abstractmethod
 
-from ska_sdc import Sdc1Scorer
 import numpy as np
+from ska_sdc import Sdc1Scorer
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.metrics import mean_squared_error, accuracy_score
+from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.preprocessing import LabelEncoder
 
 from ska.sdc1.utils.bdsf_utils import cat_df_from_srl, load_truth_df, srl_gaul_df
@@ -18,13 +18,12 @@ class SKLModel(ABC):
         """
         self.model = model
         self.defaults = defaults
-        
-        self.last_xmatch_score = None
 
+        self.last_xmatch_score = None
 
     def _preprocess_srl_df(self, srl_df, srl_cat_cols, srl_num_cols, srl_drop_cols):
         """
-        Preprocess the source list DataFrame ready for model generation and 
+        Preprocess the source list DataFrame ready for model generation and
         prediction.
 
         Args:
@@ -57,12 +56,11 @@ class SKLModel(ABC):
 
         return srl_df
 
-
     def _fit(self, X, y):
         """
         Wrapper for SKL fit(). 
         
-        Fits training input samples, X[X_columns], against target values, 
+        Fits training input samples, X[X_columns], against target values,
         y[Y_column].
 
         Args:
@@ -70,9 +68,8 @@ class SKLModel(ABC):
             y (:obj:`numpy.array`): Target values.
         Returns:
             None
-        """              
+        """
         self.model.fit(X, y)
-
 
     def _predict(self, X):
         """
@@ -87,7 +84,6 @@ class SKLModel(ABC):
         """
         return self.model.predict(X)
 
-
     def _score_validation_set(self, X, y, metric):
         """
         Score the validation set using the metric, <metric>.
@@ -100,10 +96,9 @@ class SKLModel(ABC):
         """
         return metric(X, y)
 
-
     def _xmatch_using_scorer(self, srl_path, truth_cat_path, freq):
         """
-        Crossmatch source list against a truth catalogue using the SDC1 scorer. 
+        Crossmatch source list against a truth catalogue using the SDC1 scorer.
 
         Args:
             srl_path (`str`): Path to source list (.srl file).
@@ -114,27 +109,31 @@ class SKLModel(ABC):
         truth_cat_df = load_truth_df(truth_cat_path)
 
         truth_cat_df = truth_cat_df.dropna()
-        
+
         scorer = Sdc1Scorer(sub_cat_df, truth_cat_df, freq)
         self._last_xmatch_score = scorer.run(train=True, detail=True, mode=1)
 
         return self._last_xmatch_score
 
-
     @property
     def last_xmatch_score(self):
         return self._last_xmatch_score.value
-
 
     @last_xmatch_score.setter
     def last_xmatch_score(self, new_score):
         self._last_xmatch_score = new_score
 
-
-    def test(self, srl_path, gaul_path, srl_cat_cols=SRL_CAT_COLS, 
-    srl_num_cols=SRL_NUM_COLS, srl_drop_cols=SRL_COLS_TO_DROP, sl=np.s_[::]):
+    def test(
+        self,
+        srl_path,
+        gaul_path,
+        srl_cat_cols=SRL_CAT_COLS,
+        srl_num_cols=SRL_NUM_COLS,
+        srl_drop_cols=SRL_COLS_TO_DROP,
+        sl=np.s_[::],
+    ):
         """
-        Predict the <regressand_column> for the test set source list using the 
+        Predict the <regressand_column> for the test set source list using the
         regressor.
 
         Args:
@@ -152,20 +151,29 @@ class SKLModel(ABC):
         srl_df = srl_gaul_df(gaul_path, srl_path)
 
         # Preprocess source list, take slice, and construct test dataset.
-        # 
-        srl_df = self._preprocess_srl_df(srl_df, srl_cat_cols, srl_num_cols, 
-            srl_drop_cols).iloc[sl, :]
-        test_x = srl_df[srl_cat_cols+srl_num_cols]
+        #
+        srl_df = self._preprocess_srl_df(
+            srl_df, srl_cat_cols, srl_num_cols, srl_drop_cols
+        ).iloc[sl, :]
+        test_x = srl_df[srl_cat_cols + srl_num_cols]
         test_y = self._predict(test_x)
 
         return test_y
 
-
-    def train(self, srl_path, truth_cat_path, gaul_path, regressand_col=None, freq=1400, 
-        srl_cat_cols=SRL_CAT_COLS, srl_num_cols=SRL_NUM_COLS,
-        srl_drop_cols=SRL_COLS_TO_DROP, sl=np.s_[::2]):
+    def train(
+        self,
+        srl_path,
+        truth_cat_path,
+        gaul_path,
+        regressand_col=None,
+        freq=1400,
+        srl_cat_cols=SRL_CAT_COLS,
+        srl_num_cols=SRL_NUM_COLS,
+        srl_drop_cols=SRL_COLS_TO_DROP,
+        sl=np.s_[::2],
+    ):
         """
-        Train the regressor on <regressand_col> using a crossmatched PyBDSF 
+        Train the regressor on <regressand_col> using a crossmatched PyBDSF
         source list.
 
         Args:
@@ -184,7 +192,7 @@ class SKLModel(ABC):
         # Set defaults.
         #
         if regressand_col is None:
-            regressand_col = self.defaults['regressand_col']
+            regressand_col = self.defaults["regressand_col"]
 
         # Get crossmatched DataFrame using the SDC1 scorer.
         #
@@ -195,7 +203,7 @@ class SKLModel(ABC):
         #
         srl_df = srl_gaul_df(gaul_path, srl_path)
 
-        # Reindex both source list and matched dataframes and add matched regressand 
+        # Reindex both source list and matched dataframes and add matched regressand
         # column values to source list DataFrame.
         #
         # This leaves NaN values for unmatched sources in <srl_df>.
@@ -205,22 +213,29 @@ class SKLModel(ABC):
         srl_df[regressand_col] = xmatch_df[regressand_col]
 
         # Preprocess source list, take slice, and construct training dataset.
-        # 
-        srl_df = self._preprocess_srl_df(srl_df, srl_cat_cols, srl_num_cols, 
-            srl_drop_cols).iloc[sl, :]
-        train_x = srl_df[srl_cat_cols+srl_num_cols]
+        #
+        srl_df = self._preprocess_srl_df(
+            srl_df, srl_cat_cols, srl_num_cols, srl_drop_cols
+        ).iloc[sl, :]
+        train_x = srl_df[srl_cat_cols + srl_num_cols]
         train_y = srl_df[regressand_col].values
 
         self._fit(train_x, train_y)
 
         return srl_df
 
-
-    def validate(self, srl_df, regressand_col=None, validation_metric=None, 
-    srl_cat_cols=SRL_CAT_COLS, srl_num_cols=SRL_NUM_COLS, 
-    srl_drop_cols=SRL_COLS_TO_DROP, sl=np.s_[1::2]):
+    def validate(
+        self,
+        srl_df,
+        regressand_col=None,
+        validation_metric=None,
+        srl_cat_cols=SRL_CAT_COLS,
+        srl_num_cols=SRL_NUM_COLS,
+        srl_drop_cols=SRL_COLS_TO_DROP,
+        sl=np.s_[1::2],
+    ):
         """
-        Predict the <regressand_column> for the validation set source list using the 
+        Predict the <regressand_column> for the validation set source list using the
         regressor.
 
         Args:
@@ -237,56 +252,59 @@ class SKLModel(ABC):
         # Set defaults.
         #
         if regressand_col is None:
-            regressand_col = self.defaults['regressand_col']
+            regressand_col = self.defaults["regressand_col"]
         if validation_metric is None:
-            validation_metric = self.defaults['validation_metric']
+            validation_metric = self.defaults["validation_metric"]
 
         # Take slice and construct validation set.
-        # 
+        #
         srl_df = srl_df.iloc[sl, :]
-        validate_x = srl_df[srl_cat_cols+srl_num_cols]
+        validate_x = srl_df[srl_cat_cols + srl_num_cols]
         validate_y_true = srl_df[regressand_col].values
 
         validate_y = self._predict(validate_x)
 
-        return self._score_validation_set(validate_y, validate_y_true, 
-            metric=validation_metric)
+        return self._score_validation_set(
+            validate_y, validate_y_true, metric=validation_metric
+        )
 
 
 class SKLClassification(SKLModel):
-    def __init__(self, algorithm=RandomForestClassifier, classifier_args=[], 
-    classifier_kwargs={}):
+    def __init__(
+        self, algorithm=RandomForestClassifier, classifier_args=[], classifier_kwargs={}
+    ):
         """
         Sci-kit learn classification.
-        
+
         Args:
             algorithm (`class`): SKL classifier class.
             classifier_args (`list`): classifier args.
             classifier_kwargs (`dict`): classifier kwargs.
         """
-        self.classifier = algorithm(*classifier_args, **classifier_kwargs)    
-        super().__init__(self.classifier, defaults={
-            'validation_metric': accuracy_score,
-            'regressand_col': 'class'
-        })
+        self.classifier = algorithm(*classifier_args, **classifier_kwargs)
+        super().__init__(
+            self.classifier,
+            defaults={"validation_metric": accuracy_score, "regressand_col": "class"},
+        )
 
 
 class SKLRegression(SKLModel):
-    def __init__(self, algorithm=RandomForestRegressor, regressor_args=[], 
-    regressor_kwargs={}):
+    def __init__(
+        self, algorithm=RandomForestRegressor, regressor_args=[], regressor_kwargs={}
+    ):
         """
         Sci-kit learn regression.
-        
+
         Args:
             algorithm (`class`): SKL regressor class.
             regressor_args (`list`): regressor args.
             regressor_kwargs (`dict`): regressor kwargs.
         """
         self.regressor = algorithm(*regressor_args, **regressor_kwargs)
-        super().__init__(self.regressor, defaults={
-            'validation_metric': mean_squared_error,
-            'regressand_col': 'b_maj_t'
-        })
-
-
-
+        super().__init__(
+            self.regressor,
+            defaults={
+                "validation_metric": mean_squared_error,
+                "regressand_col": "b_maj_t",
+            },
+        )
