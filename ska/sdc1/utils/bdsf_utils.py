@@ -13,7 +13,10 @@ def cat_df_from_srl(srl_path):
         srl_path (`str`): Path to source list (.srl file)
     """
     srl_df = srl_as_df(srl_path)
+    return cat_df_from_srl_df(srl_df)
 
+
+def cat_df_from_srl_df(srl_df):
     # Instantiate catalogue DataFrame
     cat_df = pd.DataFrame()
 

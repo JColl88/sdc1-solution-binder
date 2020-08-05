@@ -1,5 +1,4 @@
-import os
-from abc import ABC, abstractmethod
+from abc import ABC
 
 import numpy as np
 from ska_sdc import Sdc1Scorer
@@ -7,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.preprocessing import LabelEncoder
 
-from ska.sdc1.utils.bdsf_utils import cat_df_from_srl, load_truth_df, srl_gaul_df
+from ska.sdc1.utils.bdsf_utils import cat_df_from_srl_df
 from ska.sdc1.utils.columns import SRL_CAT_COLS, SRL_COLS_TO_DROP, SRL_NUM_COLS
 
 
@@ -58,8 +57,8 @@ class SKLModel(ABC):
 
     def _fit(self, X, y):
         """
-        Wrapper for SKL fit(). 
-        
+        Wrapper for SKL fit().
+
         Fits training input samples, X[X_columns], against target values,
         y[Y_column].
 
@@ -96,17 +95,16 @@ class SKLModel(ABC):
         """
         return metric(X, y)
 
-    def _xmatch_using_scorer(self, srl_path, truth_cat_path, freq):
+    def _xmatch_using_scorer(self, srl_df, truth_cat_df, freq):
         """
         Crossmatch source list against a truth catalogue using the SDC1 scorer.
 
         Args:
-            srl_path (`str`): Path to source list (.srl file).
-            truth_cat_path (`str`): Path to truth catalogue.
+            srl_df (:obj:`pandas.DataFrame`): Source list.
+            truth_cat_df (:obj:`pandas.DataFrame`): Truth catalogue.
             freq: (`int`): Frequency band (MHz).
         """
-        sub_cat_df = cat_df_from_srl(srl_path)
-        truth_cat_df = load_truth_df(truth_cat_path)
+        sub_cat_df = cat_df_from_srl_df(srl_df)
 
         truth_cat_df = truth_cat_df.dropna()
 
@@ -125,8 +123,7 @@ class SKLModel(ABC):
 
     def test(
         self,
-        srl_path,
-        gaul_path,
+        srl_df,
         srl_cat_cols=SRL_CAT_COLS,
         srl_num_cols=SRL_NUM_COLS,
         srl_drop_cols=SRL_COLS_TO_DROP,
@@ -137,8 +134,7 @@ class SKLModel(ABC):
         regressor.
 
         Args:
-            srl_path (`str`): Path to source list (.srl file).
-            gaul_path (`str`): Path to Gaussian list (.srl file).
+            srl_df (:obj:`pandas.DataFrame`): Source list.
             srl_cat_cols: (`list`) Categorical columns in source list.
             srl_num_cols: (`list`) Numerical columns in source list.
             srl_drop_cols: (`list`) Columns to exclude in source list.
@@ -146,10 +142,6 @@ class SKLModel(ABC):
         Returns:
             (:obj:`numpy.ndarray`): Predicted values.
         """
-        # Append the number of Gaussians to the source list DataFrame and take slice.
-        #
-        srl_df = srl_gaul_df(gaul_path, srl_path)
-
         # Preprocess source list, take slice, and construct test dataset.
         #
         srl_df = self._preprocess_srl_df(
@@ -162,9 +154,8 @@ class SKLModel(ABC):
 
     def train(
         self,
-        srl_path,
-        truth_cat_path,
-        gaul_path,
+        srl_df,
+        truth_cat_df,
         regressand_col=None,
         freq=1400,
         srl_cat_cols=SRL_CAT_COLS,
@@ -177,9 +168,8 @@ class SKLModel(ABC):
         source list.
 
         Args:
-            srl_path (`str`): Path to source list (.srl file).
-            truth_cat_path (`str`): Path to truth catalogue.
-            gaul_path (`str`): Path to Gaussian list (.srl file).
+            srl_df (:obj:`pandas.DataFrame`): Source list.
+            truth_cat_df (:obj:`pandas.DataFrame`): Truth catalogue.
             regressand_col: (`str`): Regressand column name.
             freq: (`int`): Frequency band (MHz).
             srl_cat_cols: (`list`) Categorical columns in source list.
@@ -196,12 +186,8 @@ class SKLModel(ABC):
 
         # Get crossmatched DataFrame using the SDC1 scorer.
         #
-        xmatch = self._xmatch_using_scorer(srl_path, truth_cat_path, freq)
-        xmatch_df = self._xmatch_using_scorer(srl_path, truth_cat_path, freq).match_df
-
-        # Append the number of Gaussians to the source list DataFrame.
-        #
-        srl_df = srl_gaul_df(gaul_path, srl_path)
+        xmatch = self._xmatch_using_scorer(srl_df, truth_cat_df, freq)
+        xmatch_df = xmatch.match_df
 
         # Reindex both source list and matched dataframes and add matched regressand
         # column values to source list DataFrame.
@@ -239,7 +225,7 @@ class SKLModel(ABC):
         regressor.
 
         Args:
-            srl_df (`str`): Path to source list (.srl file).
+            srl_df (:obj:`pandas.DataFrame`): Source list.
             regressand_col: (`str`): Regressand column name.
             validation_metric: (`function`) SKL metric.
             srl_cat_cols: (`list`) Categorical columns in source list.

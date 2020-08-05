@@ -5,6 +5,7 @@ import pytest
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import accuracy_score, mean_squared_error
 
+from ska.sdc1.utils.bdsf_utils import load_truth_df, srl_gaul_df
 from ska.sdc1.utils.classification import SKLClassification, SKLRegression
 
 
@@ -28,6 +29,10 @@ class TestClassification:
         test_srl_path = os.path.join(srl_dir, test_classification_test_srl_name)
         test_gaul_path = os.path.join(gaul_dir, test_classification_test_gaul_name)
 
+        train_srl_df = srl_gaul_df(train_gaul_path, train_srl_path)
+        train_truth_cat_df = load_truth_df(train_truth_cat_path)
+        test_srl_df = srl_gaul_df(test_gaul_path, test_srl_path)
+
         # Regression.
         #
         regressor = SKLRegression(
@@ -37,10 +42,7 @@ class TestClassification:
         )
 
         srl_df = regressor.train(
-            train_srl_path,
-            train_truth_cat_path,
-            train_gaul_path,
-            regressand_col="b_maj_t",
+            train_srl_df, train_truth_cat_df, regressand_col="b_maj_t",
         )
 
         # Assertion for xmatch score.
@@ -52,7 +54,7 @@ class TestClassification:
         ) == pytest.approx(0.079704, 1e-5)
 
         # Assertion for testing score.
-        test_y = regressor.test(test_srl_path, test_gaul_path)
+        test_y = regressor.test(test_srl_df)
         assert np.mean(test_y) == pytest.approx(1.57434, 1e-5)
         assert np.min(test_y) == pytest.approx(0.49190, 1e-5)
         assert np.max(test_y) == pytest.approx(7.61947, 1e-5)
@@ -66,10 +68,7 @@ class TestClassification:
         )
 
         srl_df = classifier.train(
-            train_srl_path,
-            train_truth_cat_path,
-            train_gaul_path,
-            regressand_col="class",
+            train_srl_df, train_truth_cat_df, regressand_col="class",
         )
 
         # Assertion for xmatch score.
@@ -84,5 +83,5 @@ class TestClassification:
         )
 
         # Assertion for testing score.
-        test_y = classifier.test(test_srl_path, test_gaul_path)
+        test_y = classifier.test(test_srl_df)
         assert all(test_y)
