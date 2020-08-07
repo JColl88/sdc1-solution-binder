@@ -46,7 +46,7 @@ class TestClassification:
         )
 
         # Assertion for xmatch score.
-        assert regressor.last_xmatch_score == pytest.approx(28.91795, 1e-5)
+        assert regressor.last_xmatch_score == pytest.approx(36.63223, 1e-5)
 
         # Assertion for validation score.
         assert regressor.validate(
@@ -72,7 +72,7 @@ class TestClassification:
         )
 
         # Assertion for xmatch score.
-        assert classifier.last_xmatch_score == pytest.approx(28.91795, 1e-5)
+        assert classifier.last_xmatch_score == pytest.approx(36.63223, 1e-5)
 
         # Assertion for validation score.
         assert (
