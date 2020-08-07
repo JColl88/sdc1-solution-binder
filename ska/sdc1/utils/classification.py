@@ -196,8 +196,7 @@ class SKLModel(ABC):
         #
         srl_df = srl_df.set_index("Source_id")
         xmatch_df = xmatch_df.set_index("id")
-        regressand_col_t = regressand_col + "_t"
-        srl_df[regressand_col] = xmatch_df[regressand_col_t]
+        srl_df[regressand_col] = xmatch_df[regressand_col]
 
         # Preprocess source list, take slice, and construct training dataset.
         #

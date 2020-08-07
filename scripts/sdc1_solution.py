@@ -79,7 +79,7 @@ if __name__ == "__main__":
         # Construct and train classifier
         classifier = SKLClassification(algorithm=RandomForestClassifier)
         srl_df = classifier.train(
-            source_train_df, train_truth_cat_df, regressand_col="class", freq=freq
+            source_train_df, train_truth_cat_df, regressand_col="class_t", freq=freq
         )
 
         # Store model for prediction later
