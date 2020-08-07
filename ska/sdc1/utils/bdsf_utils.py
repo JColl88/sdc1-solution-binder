@@ -16,7 +16,7 @@ def cat_df_from_srl(srl_path):
     return cat_df_from_srl_df(srl_df)
 
 
-def cat_df_from_srl_df(srl_df):
+def cat_df_from_srl_df(srl_df, guess_class=True):
     # Instantiate catalogue DataFrame
     cat_df = pd.DataFrame()
 
@@ -46,8 +46,12 @@ def cat_df_from_srl_df(srl_df):
     cat_df["size"] = 2
 
     # Class
-    # TODO: To be predicted using classifier
-    cat_df["class"] = 1
+    if guess_class:
+        # Most sources are SFGs (class 3)
+        cat_df["class"] = 3
+    else:
+        cat_df["class"] = srl_df["class"]
+
     return cat_df
 
 
@@ -117,7 +121,7 @@ def score_from_srl(srl_path, truth_path, freq, verbose=False):
     return score
 
 
-def load_truth_df(truth_path):
+def load_truth_df(truth_path, skiprows=0):
     """
     Load the training area truth catalogue.
     Expected to be in the format as provided on the SDC1 website.
@@ -126,6 +130,10 @@ def load_truth_df(truth_path):
         truth_path (`str`): Path to training truth catalogue
     """
     truth_df = pd.read_csv(
-        truth_path, names=CAT_COLUMNS, usecols=range(12), delim_whitespace=True,
+        truth_path,
+        names=CAT_COLUMNS,
+        usecols=range(12),
+        skiprows=skiprows,
+        delim_whitespace=True,
     )
     return truth_df
