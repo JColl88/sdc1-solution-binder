@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from time import time
 
 from ska_sdc import Sdc1Scorer
 from sklearn.ensemble import RandomForestClassifier
@@ -51,7 +52,10 @@ if __name__ == "__main__":
     5) Predict the class of each source
     6) Calculate the score for each image band
     """
+    time_0 = time()
+    times = []
     # 1) Create in-memory representation of image and preprocess
+    print("\nStep 1: Preprocessing; elapsed: {:.2f}s".format(time() - time_0))
     image2d_list = []
     for freq, path in image_paths.items():
         new_image = Image2d(freq, path, pb_paths[freq])
@@ -61,6 +65,7 @@ if __name__ == "__main__":
     # In data/images, we now have PB-corrected and training images for each band
 
     # 2) Source finding (training):
+    print("\nStep 2: Source finding (train); elapsed: {:.2f}s".format(time() - time_0))
     sources_training = {}
     for image2d in image2d_list:
         source_finder = SourceFinder(image2d.train)
@@ -71,6 +76,7 @@ if __name__ == "__main__":
     # <Additional feature engineering of the source DataFrames can be performed here>
 
     # 3) Train classifiers for each frequency's source DataFrame:
+    print("\nStep 3: Training classifiers; elapsed: {:.2f}s".format(time() - time_0))
     classifiers = {}
     for freq, source_train_df in sources_training.items():
         # Load truth catalogue for the training area into memory
@@ -87,17 +93,20 @@ if __name__ == "__main__":
 
     # 4) Source finding (full):
     sources_full = {}
+    print("\nStep 4: Source finding (full); elapsed: {:.2f}s".format(time() - time_0))
     for image2d in image2d_list:
         source_finder = SourceFinder(image2d.pb_corr_image)
         sources_full[image2d.freq] = source_finder.run()
         source_finder.reset()
 
     # 5) Source classification (full)
+    print("\nStep 5: Classification; elapsed: {:.2f}s".format(time() - time_0))
     for freq, source_df in sources_full.items():
         source_df["class"] = classifiers[freq].test(source_df)
         print(source_df["class"].value_counts())
 
     # 6) Create final catalogues and calculate scores
+    print("\nStep 6: Final score; elapsed: {:.2f}s".format(time() - time_0))
     for freq, source_df in sources_full.items():
         # Assemble submission and truth catalogues for scoring
         sub_cat_df = cat_df_from_srl_df(source_df, guess_class=False)
@@ -125,3 +134,5 @@ if __name__ == "__main__":
             report.write("Number of false detections {}\n".format(score.n_false))
             report.write("Score for all matches {}\n".format(score.score_det))
             report.write("Accuracy percentage {}\n".format(score.acc_pc))
+
+    print("\nComplete; elapsed: {:.2f}s".format(time() - time_0))
