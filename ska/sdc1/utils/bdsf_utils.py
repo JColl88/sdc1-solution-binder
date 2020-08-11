@@ -136,4 +136,4 @@ def load_truth_df(truth_path, skiprows=0):
         skiprows=skiprows,
         delim_whitespace=True,
     )
-    return truth_df
+    return truth_df.dropna()
