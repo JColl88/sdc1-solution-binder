@@ -1,8 +1,10 @@
 aplpy
 astropy
 bdsf
+black
 cython
 datashader
+flake8
 matplotlib
 memory_profiler
 montage-wrapper
@@ -10,7 +12,8 @@ numpy
 scipy
 scikit-learn
 setuptools
+sphinx
+sphinx_rtd_theme
 umap-learn
 wcsaxes
 wheel
-

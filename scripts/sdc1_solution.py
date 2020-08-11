@@ -103,7 +103,6 @@ if __name__ == "__main__":
     print("\nStep 5: Classification; elapsed: {:.2f}s".format(time() - time_0))
     for freq, source_df in sources_full.items():
         source_df["class"] = classifiers[freq].test(source_df)
-        print(source_df["class"].value_counts())
 
     # 6) Create final catalogues and calculate scores
     print("\nStep 6: Final score; elapsed: {:.2f}s".format(time() - time_0))
