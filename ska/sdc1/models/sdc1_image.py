@@ -14,11 +14,11 @@ from ska.sdc1.utils.image_utils import (
 )
 
 
-class Image2d:
+class Sdc1Image:
     """
     Class to handle image preprocessing for SDC1.
 
-    The Image2d instance contains simple metadata about the SDC1 image, such as
+    The Sdc1Image instance contains simple metadata about the SDC1 image, such as
     frequency and the paths to the files on disk, and provides methods to perform
     preprocessing of the images.
 
@@ -105,7 +105,7 @@ class Image2d:
 
     def reset(self):
         """
-        Reset the state of the Image2d instance by deleting train and PB-corrected
+        Reset the state of the Sdc1Image instance by deleting train and PB-corrected
         images
         """
         self._delete_pb_corr()

@@ -5,7 +5,7 @@ from time import time
 from ska_sdc import Sdc1Scorer
 from sklearn.ensemble import RandomForestClassifier
 
-from ska.sdc1.models.image_2d import Image2d
+from ska.sdc1.models.sdc1_image import Sdc1Image
 from ska.sdc1.utils.bdsf_utils import cat_df_from_srl_df, load_truth_df
 from ska.sdc1.utils.classification import SKLClassification
 from ska.sdc1.utils.source_finder import SourceFinder
@@ -56,20 +56,20 @@ if __name__ == "__main__":
     times = []
     # 1) Create in-memory representation of image and preprocess
     print("\nStep 1: Preprocessing; elapsed: {:.2f}s".format(time() - time_0))
-    image2d_list = []
+    sdc1_image_list = []
     for freq, path in image_paths.items():
-        new_image = Image2d(freq, path, pb_paths[freq])
+        new_image = Sdc1Image(freq, path, pb_paths[freq])
         new_image.preprocess()
-        image2d_list.append(new_image)
+        sdc1_image_list.append(new_image)
 
     # In data/images, we now have PB-corrected and training images for each band
 
     # 2) Source finding (training):
     print("\nStep 2: Source finding (train); elapsed: {:.2f}s".format(time() - time_0))
     sources_training = {}
-    for image2d in image2d_list:
-        source_finder = SourceFinder(image2d.train)
-        sources_training[image2d.freq] = source_finder.run()
+    for sdc1_image in sdc1_image_list:
+        source_finder = SourceFinder(sdc1_image.train)
+        sources_training[sdc1_image.freq] = source_finder.run()
         # Remove temp files:
         source_finder.reset()
 
@@ -83,7 +83,10 @@ if __name__ == "__main__":
         train_truth_cat_df = load_truth_df(train_truth_cat_paths[freq], skiprows=18)
 
         # Construct and train classifier
-        classifier = SKLClassification(algorithm=RandomForestClassifier)
+        classifier = SKLClassification(
+            algorithm=RandomForestClassifier,
+            classifier_kwargs={"n_estimators": 100, "class_weight": "balanced"},
+        )
         srl_df = classifier.train(
             source_train_df, train_truth_cat_df, regressand_col="class_t", freq=freq
         )
@@ -94,9 +97,9 @@ if __name__ == "__main__":
     # 4) Source finding (full):
     sources_full = {}
     print("\nStep 4: Source finding (full); elapsed: {:.2f}s".format(time() - time_0))
-    for image2d in image2d_list:
-        source_finder = SourceFinder(image2d.pb_corr_image)
-        sources_full[image2d.freq] = source_finder.run()
+    for sdc1_image in sdc1_image_list:
+        source_finder = SourceFinder(sdc1_image.pb_corr_image)
+        sources_full[sdc1_image.freq] = source_finder.run()
         source_finder.reset()
 
     # 5) Source classification (full)

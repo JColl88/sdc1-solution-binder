@@ -47,17 +47,17 @@ def test_classification_train_srl_name():
 
 
 @pytest.fixture
-def test_image_2d_image_large_name():
+def test_sdc1_image_image_large_name():
     return "B1_1000h_0.3tr.fits"
 
 
 @pytest.fixture
-def test_image_2d_image_small_name():
+def test_sdc1_image_image_small_name():
     return "B1_1000h_0.05tr.fits"
 
 
 @pytest.fixture
-def test_image_2d_pb_image_name():
+def test_sdc1_image_pb_image_name():
     return "PrimaryBeam_B1.fits"
 
 

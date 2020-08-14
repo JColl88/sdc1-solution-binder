@@ -23,7 +23,7 @@ The resulting catalogues can then be converted into the required format for the 
    :maxdepth: 2
    :caption: SDC1 Solution
 
-   image_2d
+   sdc1_image
    source_finder
 
 Indices and tables
