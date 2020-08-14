@@ -12,6 +12,7 @@ numpy
 scipy
 scikit-learn
 setuptools
+ska-sdc
 sphinx
 sphinx_rtd_theme
 umap-learn

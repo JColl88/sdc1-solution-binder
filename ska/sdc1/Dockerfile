@@ -62,13 +62,8 @@ COPY ./requirements.txt /tmp/
 RUN python3.6 -m pip install --upgrade pip
 RUN python3.6 -m pip install -r /tmp/requirements.txt
 
-RUN git clone https://gitlab.com/ska-telescope/sdc/ska-sdc.git ska_sdc
-RUN python3.6 -m pip install ./ska_sdc
-
-RUN git clone https://gitlab.com/ska-telescope/sdc/sdc1-solution.git sdc1-solution
-
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}/usr/local/lib
 
-WORKDIR /sdc1-solution/
+WORKDIR /opt/
 
 ENTRYPOINT /bin/bash

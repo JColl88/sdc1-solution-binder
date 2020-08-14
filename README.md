@@ -28,19 +28,27 @@ Source `etc/aliases` for shell auto-complete:
 $ source etc/aliases
 ```
 
+While it is possible to perform all remaining steps in a containerised environment, it is more efficient to download the data on the host machine and mount this as a volume in the container.
+
+Download the data (from the project root folder `${SDC1_SOLUTION_ROOT}`):
+
+```bash
+$ /bin/bash scripts/download_data.sh
+```
+
 Make the docker image:
 
 ```bash
 $ make dev
 ```
 
-### Run dev container with mounts
+Run dev container with mounts (this will throw an error if the data has been downloaded to a directory other than `${SDC1_SOLUTION_ROOT}/data`)
 
 ```bash
 $ sdc1-start-dev
 ```
 
-### Exec a shell inside the container
+Exec a shell inside the container
 
 ```bash
 $ sdc1-exec-dev
@@ -51,13 +59,13 @@ $ sdc1-exec-dev
 A script for running a simple analysis workflow is provided in `scripts/sdc1_solution.py`. Prior to running this, the data must be downloaded. This can be done by executing the script from the project root:
 
 ```bash
-/bin/bash scripts/download_data.sh
+$ /bin/bash scripts/download_data.sh
 ```
 
 The analysis pipeline can then be run by Python 3.6:
 
 ```bash
-PYTHONPATH=./ python3.6 scripts/sdc1_solution.py
+$ PYTHONPATH=./ python3.6 scripts/sdc1_solution.py
 ```
 
 ### Stop the container
