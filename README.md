@@ -56,13 +56,9 @@ $ sdc1-exec-dev
 
 ### Run an analysis pipeline
 
-A script for running a simple analysis workflow is provided in `scripts/sdc1_solution.py`. Prior to running this, the data must be downloaded. This can be done by executing the script from the project root:
+A script for running a simple analysis workflow is provided in `scripts/sdc1_solution.py`. This assumes the data has been downloaded as described above, and mounted in the development container (performed by default by the `sdc1-start-dev` alias).
 
-```bash
-$ /bin/bash scripts/download_data.sh
-```
-
-The analysis pipeline can then be run by Python 3.6:
+The analysis pipeline can then be run by the container's Python 3.6 interpreter:
 
 ```bash
 $ PYTHONPATH=./ python3.6 scripts/sdc1_solution.py
