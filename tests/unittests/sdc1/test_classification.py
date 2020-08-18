@@ -84,4 +84,6 @@ class TestClassification:
 
         # Assertion for testing score.
         test_y = classifier.test(test_srl_df)
+        proba_y = classifier.predict_proba(test_srl_df)
         assert all(test_y)
+        assert all(proba_y.ravel())

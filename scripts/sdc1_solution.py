@@ -4,12 +4,14 @@ from time import time
 
 from ska_sdc import Sdc1Scorer
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
 
 from ska.sdc1.models.sdc1_image import Sdc1Image
 from ska.sdc1.utils.bdsf_utils import cat_df_from_srl_df, load_truth_df
 from ska.sdc1.utils.classification import SKLClassification
 from ska.sdc1.utils.source_finder import SourceFinder
 
+# Input data paths
 image_paths = {
     560: "data/images/560mhz_1000h.fits",
     1400: "data/images/1400mhz_1000h.fits",
@@ -34,11 +36,50 @@ full_truth_cat_paths = {
     9200: "data/truth/9200mhz_truth_full.txt",
 }
 
+# Output data paths
+train_source_df_paths = {
+    560: "data/sources/560mhz_sources_train.csv",
+    1400: "data/sources/1400mhz_sources_train.csv",
+    9200: "data/sources/9200mhz_sources_train.csv",
+}
+
+full_source_df_paths = {
+    560: "data/sources/560mhz_sources_full.csv",
+    1400: "data/sources/1400mhz_sources_full.csv",
+    9200: "data/sources/9200mhz_sources_full.csv",
+}
+
+class_df_paths = {
+    560: "data/sources/560mhz_class.csv",
+    1400: "data/sources/1400mhz_class.csv",
+    9200: "data/sources/9200mhz_class.csv",
+}
+
+submission_df_paths = {
+    560: "data/sources/560mhz_submission.csv",
+    1400: "data/sources/1400mhz_submission.csv",
+    9200: "data/sources/9200mhz_submission.csv",
+}
+
+model_paths = {
+    560: "data/models/560mhz_classifier.sav",
+    1400: "data/models/1400mhz_classifier.sav",
+    9200: "data/models/9200mhz_classifier.sav",
+}
+
 score_report_paths = {
     560: "data/score/560mhz_score.txt",
     1400: "data/score/1400mhz_score.txt",
     9200: "data/score/9200mhz_score.txt",
 }
+
+
+def write_df_to_disk(df, out_path):
+    """ Helper function to write DataFrame df to a file at out_path"""
+    out_dir = os.path.dirname(out_path)
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    df.to_csv(out_path, index=False)
+
 
 if __name__ == "__main__":
     """
@@ -69,7 +110,13 @@ if __name__ == "__main__":
     sources_training = {}
     for sdc1_image in sdc1_image_list:
         source_finder = SourceFinder(sdc1_image.train)
-        sources_training[sdc1_image.freq] = source_finder.run()
+        sl_df = source_finder.run()
+        sources_training[sdc1_image.freq] = sl_df
+
+        # (Optional) Write source list DataFrame to disk
+        sl_train_path = train_source_df_paths[sdc1_image.freq]
+        write_df_to_disk(sl_df, sl_train_path)
+
         # Remove temp files:
         source_finder.reset()
 
@@ -99,13 +146,23 @@ if __name__ == "__main__":
     print("\nStep 4: Source finding (full); elapsed: {:.2f}s".format(time() - time_0))
     for sdc1_image in sdc1_image_list:
         source_finder = SourceFinder(sdc1_image.pb_corr_image)
-        sources_full[sdc1_image.freq] = source_finder.run()
+        sl_df = source_finder.run()
+        sources_full[sdc1_image.freq] = sl_df
+
+        # (Optional) Write source list DataFrame to disk
+        sl_full_path = full_source_df_paths[sdc1_image.freq]
+        write_df_to_disk(sl_df, sl_full_path)
+
+        # Remove temp files:
         source_finder.reset()
 
     # 5) Source classification (full)
     print("\nStep 5: Classification; elapsed: {:.2f}s".format(time() - time_0))
     for freq, source_df in sources_full.items():
         source_df["class"] = classifiers[freq].test(source_df)
+        source_df["class_prob"] = classifiers[freq].predict_proba(source_df)
+
+        write_df_to_disk(source_df, submission_df_paths[freq])
 
     # 6) Create final catalogues and calculate scores
     print("\nStep 6: Final score; elapsed: {:.2f}s".format(time() - time_0))
@@ -116,7 +173,7 @@ if __name__ == "__main__":
 
         # Calculate score
         scorer = Sdc1Scorer(sub_cat_df, truth_cat_df, freq)
-        score = scorer.run(mode=0, train=False, detail=False)
+        score = scorer.run(mode=0, train=False, detail=True)
 
         # Write short score report:
         score_path = score_report_paths[freq]
@@ -136,5 +193,15 @@ if __name__ == "__main__":
             report.write("Number of false detections {}\n".format(score.n_false))
             report.write("Score for all matches {}\n".format(score.score_det))
             report.write("Accuracy percentage {}\n".format(score.acc_pc))
+            report.write("Classification report: \n")
+            report.write(
+                classification_report(
+                    score.match_df["class_t"],
+                    score.match_df["class"],
+                    labels=[1, 2, 3],
+                    target_names=["1 (SS-AGN)", "2 (FS-AGN)", "3 (SFG)"],
+                    digits=4,
+                )
+            )
 
     print("\nComplete; elapsed: {:.2f}s".format(time() - time_0))

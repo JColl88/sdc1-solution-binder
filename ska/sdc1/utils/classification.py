@@ -273,6 +273,37 @@ class SKLClassification(SKLModel):
             defaults={"validation_metric": accuracy_score, "regressand_col": "class"},
         )
 
+    def predict_proba(
+        self,
+        srl_df,
+        srl_cat_cols=SRL_CAT_COLS,
+        srl_num_cols=SRL_NUM_COLS,
+        srl_drop_cols=SRL_COLS_TO_DROP,
+        sl=np.s_[::],
+    ):
+        """
+        Analogous to the SKLModel.test method; predict the classification probability
+        for the test set source list.
+
+        Args:
+            srl_df (:obj:`pandas.DataFrame`): Source list.
+            srl_cat_cols: (`list`) Categorical columns in source list.
+            srl_num_cols: (`list`) Numerical columns in source list.
+            srl_drop_cols: (`list`) Columns to exclude in source list.
+            sl: (`slice`) Slice of source list to use for testing.
+        Returns:
+            (:obj:`numpy.ndarray`): Predicted values.
+        """
+        # Preprocess source list, take slice, and construct test dataset.
+        #
+        srl_df = self._preprocess_srl_df(
+            srl_df, srl_cat_cols, srl_num_cols, srl_drop_cols
+        ).iloc[sl, :]
+        test_x = srl_df[srl_cat_cols + srl_num_cols]
+        proba_y = self.model.predict_proba(test_x)
+
+        return proba_y
+
 
 class SKLRegression(SKLModel):
     def __init__(
