@@ -86,7 +86,6 @@ if __name__ == "__main__":
         train_truth_cat_df = load_truth_df(train_truth_path(freq), skiprows=18)
 
         source_train_df = pd.read_csv(train_source_df_path(freq))
-        print(source_train_df.head())
 
         # Construct and train classifier
         classifier = SKLClassification(
@@ -106,7 +105,8 @@ if __name__ == "__main__":
     # 5) Source classification (full)
     print("\nStep 5: Classification; elapsed: {:.2f}s".format(time() - time_0))
     for freq in FREQS:
-        source_df = full_source_df_path(freq)
+        source_df = pd.read_csv(full_source_df_path(freq))
+        print(source_df.head())
         source_df["class"] = classifiers[freq].test(source_df)
         class_prob = classifiers[freq].predict_proba(source_df)
         print("Class probabilities")
