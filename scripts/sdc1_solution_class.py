@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from time import time
 
+import numpy as np
 import pandas as pd
 from ska_sdc import Sdc1Scorer
 from sklearn.ensemble import RandomForestClassifier
@@ -106,21 +107,20 @@ if __name__ == "__main__":
     print("\nStep 5: Classification; elapsed: {:.2f}s".format(time() - time_0))
     for freq in FREQS:
         source_df = pd.read_csv(full_source_df_path(freq))
-        print(source_df.head())
         source_df["class"] = classifiers[freq].test(source_df)
         class_prob = classifiers[freq].predict_proba(source_df)
         print("Class probabilities")
-        print(type(class_prob))
         print(class_prob.shape)
         print(len(source_df.index))
-        print(class_prob[:50])
+        print(class_prob[:25])
+        print(np.argsort(class_prob, axis=1)[0])
 
         write_df_to_disk(source_df, submission_df_path(freq))
 
     # 6) Create final catalogues and calculate scores
     print("\nStep 6: Final score; elapsed: {:.2f}s".format(time() - time_0))
     for freq in FREQS:
-        source_df = full_source_df_path(freq)
+        source_df = pd.read_csv(full_source_df_path(freq))
         # Assemble submission and truth catalogues for scoring
         sub_cat_df = cat_df_from_srl_df(source_df, guess_class=False)
         truth_cat_df = load_truth_df(full_truth_path(freq), skiprows=0)
