@@ -105,6 +105,7 @@ if __name__ == "__main__":
 
     # 5) Source classification (full)
     print("\nStep 5: Classification; elapsed: {:.2f}s".format(time() - time_0))
+    sources_full = {}
     for freq in FREQS:
         source_df = pd.read_csv(full_source_df_path(freq))
         source_df["class"] = classifiers[freq].test(source_df)
@@ -113,14 +114,17 @@ if __name__ == "__main__":
         print(class_prob.shape)
         print(len(source_df.index))
         print(class_prob[:25])
-        print(np.argsort(class_prob, axis=1)[0])
+        print(np.amax(class_prob, axis=1))
+
+        source_df["class_prob"] = np.amax(class_prob, axis=1)
+
+        sources_full[freq] = source_df
 
         write_df_to_disk(source_df, submission_df_path(freq))
 
     # 6) Create final catalogues and calculate scores
     print("\nStep 6: Final score; elapsed: {:.2f}s".format(time() - time_0))
-    for freq in FREQS:
-        source_df = pd.read_csv(full_source_df_path(freq))
+    for freq, source_df in sources_full.items():
         # Assemble submission and truth catalogues for scoring
         sub_cat_df = cat_df_from_srl_df(source_df, guess_class=False)
         truth_cat_df = load_truth_df(full_truth_path(freq), skiprows=0)
