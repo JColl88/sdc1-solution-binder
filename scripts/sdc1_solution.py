@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from time import time
 
+import numpy as np
 from ska_sdc import Sdc1Scorer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
@@ -49,11 +50,11 @@ def submission_df_path(freq):
 
 
 def model_path(freq):
-    return os.path.join("data", "sources", "{}mhz_classifier.pickle".format(freq))
+    return os.path.join("data", "models", "{}mhz_classifier.pickle".format(freq))
 
 
 def score_report_path(freq):
-    return os.path.join("data", "sources", "{}mhz_score.txt".format(freq))
+    return os.path.join("data", "score", "{}mhz_score.txt".format(freq))
 
 
 def write_df_to_disk(df, out_path):
@@ -76,7 +77,6 @@ if __name__ == "__main__":
     6) Calculate the score for each image band, and write out a short report
     """
     time_0 = time()
-    times = []
     # 1) Create in-memory representation of image and preprocess
     print("\nStep 1: Preprocessing; elapsed: {:.2f}s".format(time() - time_0))
     sdc1_image_list = []
@@ -123,6 +123,8 @@ if __name__ == "__main__":
         classifiers[freq] = classifier
 
         # (Optional) Write model to disk; allows later loading without retraining.
+        model_dir = os.path.dirname(model_path(freq))
+        Path(model_dir).mkdir(parents=True, exist_ok=True)
         classifier.save_model(model_path(freq))
 
     # 4) Source finding (full):
@@ -130,11 +132,7 @@ if __name__ == "__main__":
     print("\nStep 4: Source finding (full); elapsed: {:.2f}s".format(time() - time_0))
     for sdc1_image in sdc1_image_list:
         source_finder = SourceFinder(sdc1_image.pb_corr_image)
-        sl_df = source_finder.run()
-        sources_full[sdc1_image.freq] = sl_df
-
-        # (Optional) Write source list DataFrame to disk
-        write_df_to_disk(sl_df, full_source_df_path(sdc1_image.freq))
+        sources_full[sdc1_image.freq] = source_finder.run()
 
         # Remove temp files:
         source_finder.reset()
@@ -144,13 +142,10 @@ if __name__ == "__main__":
     for freq, source_df in sources_full.items():
         source_df["class"] = classifiers[freq].test(source_df)
         class_prob = classifiers[freq].predict_proba(source_df)
-        print("Class probabilities")
-        print(type(class_prob))
-        print(class_prob.shape)
-        print(len(source_df.index))
-        print(class_prob[:50])
+        source_df["class_prob"] = np.amax(class_prob, axis=1)
 
-        write_df_to_disk(source_df, submission_df_path(freq))
+        # (Optional) Write source list DataFrame to disk
+        write_df_to_disk(source_df, full_source_df_path(freq))
 
     # 6) Create final catalogues and calculate scores
     print("\nStep 6: Final score; elapsed: {:.2f}s".format(time() - time_0))
@@ -158,6 +153,9 @@ if __name__ == "__main__":
         # Assemble submission and truth catalogues for scoring
         sub_cat_df = cat_df_from_srl_df(source_df, guess_class=False)
         truth_cat_df = load_truth_df(full_truth_path(freq), skiprows=0)
+
+        # (Optional) Write final submission catalogue to disk
+        write_df_to_disk(sub_cat_df, submission_df_path(freq))
 
         # Calculate score
         scorer = Sdc1Scorer(sub_cat_df, truth_cat_df, freq)
