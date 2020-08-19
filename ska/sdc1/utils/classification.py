@@ -1,3 +1,4 @@
+import pickle
 from abc import ABC
 
 import numpy as np
@@ -253,6 +254,28 @@ class SKLModel(ABC):
         return self._score_validation_set(
             validate_y, validate_y_true, metric=validation_metric
         )
+
+    def save_model(self, model_path):
+        """
+        Serialise model and save to disk using pickle.
+
+        Args:
+            model_path (:obj:`str`): Path to which model will be serialised.
+        """
+        with open(model_path, "wb") as fh:
+            pickle.dump(self.model, fh, pickle.HIGHEST_PROTOCOL)
+
+    def load_model(self, model_path):
+        """
+        Load existing model from disk using pickle. This will replace the model
+        created at class instantiation, but allows for a previously-trained model
+        to be loaded into memory without retraining.
+
+        Args:
+            model_path (:obj:`str`): Path from which model will be deserialised.
+        """
+        with open(model_path, "rb") as fh:
+            self.model = pickle.load(fh)
 
 
 class SKLClassification(SKLModel):
