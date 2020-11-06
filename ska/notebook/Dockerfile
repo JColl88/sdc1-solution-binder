@@ -42,10 +42,10 @@ RUN apt-get update \
     wget \
     screen
 
-# boost
+# Boost
 RUN conda install -c conda-forge boost
 
-# montage
+# Montage
 WORKDIR /
 RUN git clone https://github.com/Caltech-IPAC/Montage.git \
     && cd Montage \
@@ -53,21 +53,24 @@ RUN git clone https://github.com/Caltech-IPAC/Montage.git \
     && cd .. 
 ENV PATH="/Montage/bin:${PATH}"
 
-# python3 requirements
+# Python3 requirements
 COPY ./ska/sdc1/requirements.txt /tmp/
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install -r /tmp/requirements.txt
 
-# Add tests/source code
-COPY ./scripts /opt/scripts
+# Add tests/source code/sample images
+COPY ./scripts /home/jovyan/scripts
+COPY ./ska/notebook/example_notebooks /home/jovyan/example_notebooks
+COPY ./data/sample_images /home/jovyan/data/sample_images
 COPY ./ska /opt/ska
 COPY ./tests /opt/tests
 
-RUN fix-permissions /opt/scripts
+# Fix permissions
 RUN fix-permissions /opt/ska
 RUN fix-permissions /opt/tests
 
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}/usr/local/lib
+ENV PYTHONPATH=${PYTHONPATH}:/opt
 
 USER $NB_UID
 
