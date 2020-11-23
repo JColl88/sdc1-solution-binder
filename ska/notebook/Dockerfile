@@ -59,13 +59,16 @@ RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install -r /tmp/requirements.txt
 
 # Add tests/source code/sample images
-COPY ./scripts /home/jovyan/scripts
-COPY ./ska/notebook/example_notebooks /home/jovyan/example_notebooks
-COPY ./data/sample_images /home/jovyan/data/sample_images
+COPY ./scripts /opt/scripts
+COPY ./ska/notebook/example_notebooks /opt/example_notebooks
+COPY ./data/sample_images /opt/data/sample_images
 COPY ./ska /opt/ska
 COPY ./tests /opt/tests
 
 # Fix permissions
+RUN fix-permissions /opt/scripts
+RUN fix-permissions /opt/example_notebooks
+RUN fix-permissions /opt/data
 RUN fix-permissions /opt/ska
 RUN fix-permissions /opt/tests
 
