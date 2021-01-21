@@ -58,6 +58,12 @@ COPY ./ska/sdc1/requirements.txt /tmp/
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install -r /tmp/requirements.txt
 
+# Aladin lite viewer requirements
+python3 -m pip install ipywidgets
+python3 -m pip install ipyaladin
+python3 jupyter nbextension enable --py widgetsnbextension --sys-prefix
+python3 jupyter nbextension enable --py --sys-prefix ipyaladin
+
 # Add tests/source code/sample images
 COPY ./scripts /opt/scripts
 COPY ./ska/notebook/example_notebooks /opt/example_notebooks
