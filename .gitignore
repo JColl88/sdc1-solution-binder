@@ -1,1 +1,32 @@
+# Byte-compiled/optimized/DLL files
+__pycache__/
+*.py[cod]
+
+# Development environment
 venv/
+Montage/
+.vscode/
+*workspace
+
+# Data and temporary directories
+data/
+*_pybdsm/
+*_tmp/
+*.pybdsf.log
+bdsf_out/
+
+# Temporary developer scripts
+dev_scripts/
+
+# Unit test/coverage reports
+tests/unittests/reports
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+coverage.xml
+
+# Sphinx documentation
+docs/_build
+
+
