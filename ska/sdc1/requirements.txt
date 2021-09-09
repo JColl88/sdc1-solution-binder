@@ -7,7 +7,7 @@ datashader
 flake8
 matplotlib
 memory_profiler
-montage-wrapper
+MontagePy
 numpy
 scipy
 scikit-learn

@@ -39,24 +39,6 @@ RUN apt-get update \
     wget \
     screen
 
-# boost v1.63
-RUN cd / \
-    && wget https://dl.bintray.com/boostorg/release/1.63.0/source/boost_1_63_0.tar.bz2 \
-    && tar xvf boost_1_63_0.tar.bz2 \
-    && cd boost_1_63_0 \
-    && ./bootstrap.sh \
-    --with-python=/usr/bin/python3.6 \
-    --with-libraries=python,date_time,filesystem,system,program_options,test \
-    && ./b2 install \
-    && cd / && rm -r boost_1_63_0*
-
-# montage
-RUN git clone https://github.com/Caltech-IPAC/Montage.git \
-    && cd Montage \
-    && make \
-    && cd .. 
-ENV PATH="/Montage/bin:${PATH}"
-
 # python3 requirements
 COPY ./requirements.txt /tmp/
 RUN python3.6 -m pip install --upgrade pip
