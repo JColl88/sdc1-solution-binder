@@ -1,10 +1,9 @@
 import os
 
-import montage_wrapper as montage
 import numpy as np
 from astropy import units as u
 from astropy.io import fits
-
+from MontagePy.main import mGetHdr, mProjectQL
 from ska.sdc1.models.exceptions import ImageNotPreprocessed
 from ska.sdc1.utils.image_utils import (
     crop_to_training_area,
@@ -176,10 +175,11 @@ class Sdc1Image:
             return
 
         with fits.open(self.pb_path) as pb_hdu:
-            # Create cropped PB image of the same size as the input image
+            # Create cropped PB image larger than the input image
+            # TODO: May be inefficient when images get large
             size = (
-                x_size * x_pixel_deg * u.degree,
-                x_size * x_pixel_deg * u.degree,
+                x_size * x_pixel_deg * u.degree * 2,
+                x_size * x_pixel_deg * u.degree * 2,
             )
 
             save_subimage(
@@ -191,14 +191,18 @@ class Sdc1Image:
             )
 
         # Regrid image PB cutout to same pixel scale as input image
-        montage.mGetHdr(self.path, self._get_hdr_path())
-        montage.reproject(
-            in_images=self._get_pb_cut_path(),
-            out_images=self._get_pb_cut_rg_path(),
-            header=self._get_hdr_path(),
-            exact_size=True,
+        mGetHdr(self.path, self._get_hdr_path())
+
+        # TODO: mProjectQL better than mProject, which outputs too-small images?
+        rtn = mProjectQL(
+            input_file=self._get_pb_cut_path(),
+            output_file=self._get_pb_cut_rg_path(),
+            template_file=self._get_hdr_path(),
         )
-        os.remove(self._get_hdr_path())
+        if rtn["status"] == "1":
+            raise ImageNotPreprocessed(
+                "Unable to reproject image: {}".format(rtn["msg"])
+            )
 
         # Correct Montage output (convert to 32-bit and fill NaNs)
         pb_array = self._postprocess_montage_out()

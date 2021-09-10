@@ -1,0 +1,8 @@
+.git
+.vscode
+venv/
+dev_scripts/
+Montage/
+
+# Cache
+**/__pycache__
