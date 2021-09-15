@@ -86,4 +86,12 @@ $ sdc1-run-unittests
 
 ## Run with BinderHub
 
-It is possible to build an interactive environment capable of running parts of the solution workflow (compute resources dependent) using the cloud service BinderHub. To view this on the public BinderHub deployment [mybinder](https://mybinder.org/), paste the link to this repository ([GitLab](https://gitlab.com/ska-telescope/sdc/sdc1-solution) and [GitHub](https://github.com/JColl88/sdc1-solution-binder) available) in the appropriate field to build and launch.
+It is possible to build an interactive environment capable of running parts of the solution workflow (compute resources dependent) using the cloud service BinderHub. To view this on the public BinderHub deployment [mybinder](https://mybinder.org/), navigate to https://mybinder.org/v2/gh/ska-telescope/sdc/sdc1-solution/HEAD.
+
+### Getting started on BinderHub
+
+After launching a BinderHub environment, some example data must be downloaded. The script `scripts/download_data.sh` is designed to download all of the requisite SDC1 data, however it is likely a BinderHub environment (such as mybinder) will not have the resources necessary to process or even store the full images.
+
+For this situation, a small subsample of each image can be downloaded using the script `binder/download_sample_data.sh`.
+
+After downloading the sample data an example workflow notebook is provided at `binder/analyse_sample.ipynb`.
