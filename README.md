@@ -83,3 +83,7 @@ $ make test
 ```bash
 $ sdc1-run-unittests
 ```
+
+## Run with BinderHub
+
+It is possible to build an interactive environment capable of running parts of the solution workflow (compute resources dependent) using the cloud service BinderHub. To view this on the public BinderHub deployment [mybinder](https://mybinder.org/), paste the link to this repository ([GitLab](https://gitlab.com/ska-telescope/sdc/sdc1-solution) and [GitHub](https://github.com/JColl88/sdc1-solution-binder) available) in the appropriate field to build and launch.
