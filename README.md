@@ -1,3 +1,5 @@
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/JColl88/sdc1-solution-binder/HEAD)
+
 # Science Data Challenge 1 Solution Workflow
 
 The SKA Science Data Challenge 1 (SDC1, https://astronomers.skatelescope.org/ska-science-data-challenge-1/) tasked participants with identifying and classifying sources in synthetic radio images.
@@ -86,7 +88,7 @@ $ sdc1-run-unittests
 
 ## Run with BinderHub
 
-It is possible to build an interactive environment capable of running parts of the solution workflow (compute resources dependent) using the cloud service BinderHub. To view this on the public BinderHub deployment [mybinder](https://mybinder.org/), navigate to https://mybinder.org/v2/gh/ska-telescope/sdc/sdc1-solution/HEAD.
+It is possible to build an interactive environment capable of running parts of the solution workflow (compute resources dependent) using the cloud service BinderHub. To view this on the public BinderHub deployment [mybinder](https://mybinder.org/), navigate to https://mybinder.org/v2/gh/JColl88/sdc1-solution-binder/HEAD.
 
 ### Getting started on BinderHub
 
@@ -94,4 +96,4 @@ After launching a BinderHub environment, some example data must be downloaded. T
 
 For this situation, a small subsample of each image can be downloaded using the script `binder/download_sample_data.sh`.
 
-After downloading the sample data an example workflow notebook is provided at `binder/analyse_sample.ipynb`.
+After downloading the sample data an example workflow notebook is provided at `analyse_sample.ipynb`.
