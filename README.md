@@ -1,4 +1,5 @@
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/JColl88/sdc1-solution-binder/HEAD)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5526844.svg)](https://doi.org/10.5281/zenodo.5526844)
 
 # Science Data Challenge 1 Solution Workflow
 
