@@ -11,6 +11,8 @@
   "issueTracker": "https://gitlab.com/ska-telescope/sdc/sdc1-solution/-/issues",
   "name": "SKAO Science Data Challenge 1 Solution Workflow",
   "version": "1.0.0",
+  "softwareVersion": "1.0.0",
+  "readme": "https://github.com/JColl88/sdc1-solution-binder/blob/main/README.md",
   "description": "The SKA Science Data Challenge 1 (SDC1, https://astronomers.skatelescope.org/ska-science-data-challenge-1/) tasked participants with identifying and classifying sources in synthetic radio images.\nHere we present an environment and workflow for producing a solution to this challenge that can easily be reproduced and developed further.",
   "applicationCategory": "Astronomy",
   "funding": "H2020 ESCAPE",
@@ -25,6 +27,7 @@
   "runtimePlatform": ["Docker"],
   "operatingSystem": ["Linux", "macOS"],
   "softwareRequirements": ["Python 3.6+"],
+  "maintainer": "James Collinson",
   "author": [
     {
       "@type": "Person",
@@ -51,16 +54,6 @@
       "givenName": "Rob",
       "familyName": "Barnsley",
       "email": "rob.barnsley@skao.int",
-      "affiliation": {
-        "@type": "Organization",
-        "name": "SKA Observatory"
-      }
-    },
-    {
-      "@type": "Person",
-      "givenName": "Rohini",
-      "familyName": "Joshi",
-      "email": "rohini.joshi@skao.int",
       "affiliation": {
         "@type": "Organization",
         "name": "SKA Observatory"
